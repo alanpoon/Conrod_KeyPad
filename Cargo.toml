@@ -1,0 +1,31 @@
+[package]
+name = "conrod_keypad"
+version = "0.1.0"
+authors = ["alanpoon"]
+
+[dependencies]
+conrod = { path ="../conrod", features = ["glium","winit"]}
+conrod_derive = {path = "../conrod/conrod_derive"}
+cardgame_widgets = {path="../cardgame_widgets"}
+libloading = { path="/home/alanpoon/Downloads/rust_libloading",optional=true}
+
+[features]
+hotload = ["libloading"]
+default =["hotload"]
+
+[dev-dependencies]
+image = "0.15.0"
+
+[package.metadata.android]
+package_name = "com.github.apoon1.conrod-keypad"
+label = "Conrod Keypad"
+android_version = 19
+build_targets = ["arm-linux-androideabi"]
+assets = "assets"
+
+[target.'cfg(target_os="android")'.dev-dependencies]
+android_glue = "0.2.3"
+rusttype = "*"
+
+[target.'cfg(not(target_os="android"))'.dev-dependencies]
+find_folder = "0.3.0"
