@@ -4,11 +4,10 @@ pub struct Application(pub Library);
 
 #[derive(Clone,Copy,PartialEq,Debug)]
 pub struct KeyButtonStyle {
-    pub normal: ([f64; 2],u32), //([width,height],fontsize)
-    pub num:([f64;2],u32),
-    pub edge_row3: ([f64; 2],u32),
-    pub edge_row4: ([f64; 2],u32), //caps,backspace,num 1/3
-    pub enter: [f64; 2], 
+    pub normal: ([f64; 2], u32), //([width,height],fontsize)
+    pub num: ([f64; 2], u32),
+    pub edge_row3: ([f64; 2], u32),
+    pub edge_row4: ([f64; 2], u32), //caps,backspace,num 1/3
     pub spacebar: [f64; 2],
 }
 
@@ -19,23 +18,30 @@ impl Application {
     pub fn in_loop(&mut self, libpath: &'static str, last_modified: &mut std::time::SystemTime) {
         if let Ok(Ok(modified)) = std::fs::metadata(libpath).map(|m| m.modified()) {
             if modified > *last_modified {
-                drop(self);
+                println!("lib in libpath is modified");
                 *last_modified = modified;
-                Application(Library::new(libpath).unwrap_or_else(|error| panic!("{}", error)));
+                *self =
+                    Application(Library::new(libpath).unwrap_or_else(|error| panic!("{}", error)));
+                let j =
+                    Application(Library::new(libpath).unwrap_or_else(|error| panic!("{}", error)));
             }
         }
     }
-    pub fn get_keyboard_styles(&self) -> KeyButtonStyle {
+    pub fn get_keyboard_styles(&self, screen_dim: [f64; 2]) -> KeyButtonStyle {
         unsafe {
-            let f = self.0.get::<fn() -> KeyButtonStyle>(b"get_keyboard_styles\0").unwrap();
+            let f = self.0.get::<fn([f64; 2]) -> KeyButtonStyle>(b"get_keyboard_styles\0").unwrap();
+            f(screen_dim)
+        }
+    }
+    pub fn get_spriteinfo(&self) -> SpriteInfo {
+        unsafe {
+            let f = self.0.get::<fn() -> SpriteInfo>(b"get_spriteinfo\0").unwrap();
             f()
         }
     }
-    pub fn get_spriteinfo(&self)->SpriteInfo{
-        unsafe{
-            println!("j");
-            let f = self.0.get::<fn() -> SpriteInfo>(b"get_spriteinfo\0").unwrap();
-            println!("k");
+    pub fn testreload(&self) -> i32 {
+        unsafe {
+            let f = self.0.get::<fn() -> i32>(b"testreload\0").unwrap();
             f()
         }
     }

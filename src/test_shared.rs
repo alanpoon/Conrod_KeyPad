@@ -1,21 +1,24 @@
 #[no_mangle]
-pub  extern "C" fn get_keyboard_styles()->KeyButtonStyle{
+pub  extern "C" fn get_keyboard_styles(screen_dim:[f64;2])->KeyButtonStyle{
     KeyButtonStyle{
-      normal:([20.0,50.0],14),
-      num:([20.0,50.0],15),
-      edge_row3:([60.0,50.0],14),
-      edge_row4:([70.0,50.0],14),
-      enter:[80.0,50.0],
-      spacebar:[200.0,50.0]
+      normal:([screen_dim[0]*0.1,screen_dim[1]*0.25],14),
+      num:([screen_dim[0]*0.1,screen_dim[1]*0.25],15),
+      edge_row3:([screen_dim[0]*0.15,screen_dim[1]*0.25],14),
+      edge_row4:([screen_dim[0]*0.35*0.5,screen_dim[1]*0.25],14),
+      spacebar:[screen_dim[0]*0.55,screen_dim[1]*0.25]
         }
+}
+#[no_mangle]
+pub  extern "C" fn testreload()->i32{
+  20
 }
 #[no_mangle]
 pub  extern "C" fn get_spriteinfo()->SpriteInfo{
   SpriteInfo{
-    first: (0.0, 535.0),
-    num_in_row: 1.0,
-    w_h: (40.0, 40.0),
-    pad: (10.0, 10.0, 0.0, 0.0),
+    first: (0.0, 400.0),
+    num_in_row: 3.0,
+    w_h: (200.0, 200.0),
+    pad: (0.0, 0.0, 0.0, 0.0),
   }
 }
 #[derive(Clone,Copy,PartialEq,Debug)]
@@ -23,8 +26,7 @@ pub struct KeyButtonStyle {
     pub normal: ([f64; 2],u32), //([width,height],fontsize)
     pub num:([f64;2],u32),
     pub edge_row3: ([f64; 2],u32),
-    pub edge_row4: ([f64; 2],u32), //caps,backspace,num 1/3
-    pub enter: [f64; 2], 
+    pub edge_row4: ([f64; 2],u32), //caps,backspace,num 1/3 
     pub spacebar: [f64; 2],
 }
 

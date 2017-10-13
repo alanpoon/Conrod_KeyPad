@@ -21,7 +21,9 @@ use conrod_keypad::english;
 const LIB_PATH: &'static str = "target/debug/libtest_shared.so";
 widget_ids! {
     pub struct Ids {
-         master
+         master,
+         keyboard,
+         image
     }
 }
 fn main() {
@@ -33,32 +35,33 @@ fn main() {
     let display = glium::Display::new(window, context, &events_loop).unwrap();
     let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
     // construct our `Ui`.
-    let (w, h) = display.get_framebuffer_dimensions();
-    let mut ui = conrod::UiBuilder::new([w as f64, h as f64]).build();
+    let (screen_w, screen_h) = display.get_framebuffer_dimensions();
+    let mut ui = conrod::UiBuilder::new([screen_w as f64, screen_h as f64]).build();
     ui.fonts.insert(support::assets::load_font("fonts/NotoSans/NotoSans-Regular.ttf"));
-        let rust_logo = load_rust_logo(&display);
-        let (w, h) = (rust_logo.get_width(), rust_logo.get_height().unwrap());
-    let mut image_map: conrod::image::Map<glium::texture::Texture2d> =
-        conrod::image::Map::new();
-        let rust_logo = image_map.insert(rust_logo);
-       
+    let rust_logo = load_image(&display, "images/rust.png");
+    let keypad_png = load_image(&display, "images/keypad.png");
+    //  let (w, h) = (rust_logo.get_width(), rust_logo.get_height().unwrap());
+    let mut image_map: conrod::image::Map<glium::texture::Texture2d> = conrod::image::Map::new();
+    let rust_logo = image_map.insert(rust_logo);
+    let (w, h) = (keypad_png.get_width(), keypad_png.get_height().unwrap());
+    let keypad_png = image_map.insert(keypad_png);
     let events_loop_proxy = events_loop.create_proxy();
     let mut events = Vec::new();
     let mut ids = Ids::new(ui.widget_id_generator());
     let mut app = application::Application::new(LIB_PATH);
     let mut text_edit = "".to_owned();
-     let mut last_update = std::time::Instant::now();
+    let mut last_update = std::time::Instant::now();
     let mut last_update_sys = std::time::SystemTime::now();
+    let mut c = 0;
     'render: loop {
-      
-        application::Application::in_loop(&mut app, LIB_PATH, &mut last_update_sys);
-        let sixteen_ms = std::time::Duration::from_millis(500);
+        let sixteen_ms = std::time::Duration::from_millis(100);
         let now = std::time::Instant::now();
         let duration_since_last_update = now.duration_since(last_update);
         if duration_since_last_update < sixteen_ms {
             std::thread::sleep(sixteen_ms - duration_since_last_update);
         }
-         let ( string_vec, num_vec)= english::populate(rust_logo,app.get_spriteinfo());
+        application::Application::in_loop(&mut app, LIB_PATH, &mut last_update_sys);
+        let (string_vec, num_vec) = english::populate(keypad_png, app.get_spriteinfo());
         events.clear();
 
         // Get all the new events since the last frame.
@@ -96,9 +99,19 @@ fn main() {
             // Set the widgets.
             let ui = &mut ui.set_widgets();
             widget::Canvas::new().color(color::LIGHT_BLUE).set(ids.master, ui);
-            keypad::KeyPadView::new(&mut text_edit,&string_vec,&num_vec,app.get_keyboard_styles());
-
+            let screen_dim = ui.wh_of(ids.master).unwrap();
+            let h = keypad::KeyPadView::new(&mut text_edit,
+                                            &string_vec,
+                                            &num_vec,
+                                            app.get_keyboard_styles([screen_dim[0],
+                                                                     screen_dim[1] * 0.4]));
+            h.mid_bottom_of(ids.master)
+                .w(screen_dim[0])
+                .h(screen_dim[1] * 0.4)
+                .set(ids.keyboard, ui);
+            c += 1;
         }
+
         let primitives = ui.draw();
         renderer.fill(&display, primitives, &image_map);
         let mut target = display.draw();
@@ -106,11 +119,10 @@ fn main() {
         renderer.draw(&display, &mut target, &image_map).unwrap();
         target.finish().unwrap();
         last_update = std::time::Instant::now();
-        last_update_sys = std::time::SystemTime::now();
     }
 }
-fn load_rust_logo(display: &glium::Display) -> glium::texture::Texture2d {
-    let rgba_image = support::assets::load_image("images/rust.png").to_rgba();
+fn load_image(display: &glium::Display, path: &str) -> glium::texture::Texture2d {
+    let rgba_image = support::assets::load_image(path).to_rgba();
     let image_dimensions = rgba_image.dimensions();
     let raw_image = glium::texture::RawImage2d::from_raw_rgba_reversed(&rgba_image.into_raw(),
                                                                        image_dimensions);

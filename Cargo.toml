@@ -7,7 +7,7 @@ authors = ["alanpoon"]
 conrod = { path ="../conrod", features = ["glium","winit"]}
 conrod_derive = {path = "../conrod/conrod_derive"}
 cardgame_widgets = {path="../cardgame_widgets"}
-libloading = { path="/home/alanpoon/Downloads/rust_libloading",optional=true}
+libloading = { version="0.4.2",optional=true}
 
 [features]
 hotload = ["libloading"]
