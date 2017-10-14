@@ -9,6 +9,8 @@ use conrod::widget;
 pub enum KeyButEnum<'a> {
     flat(Button<'a, Flat>),
     image(Button<'a, widget::Image>),
+    blank_flat(f64,Button<'a,Flat>), //width mutliplier
+    blank_image(f64,Button<'a, widget::Image>)
 }
 
 /// A pressable button widget whose reaction is triggered upon release.

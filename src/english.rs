@@ -1,5 +1,6 @@
 use custom_widget::keypad::{KeyVariant, KeyPadVariant, ClosureVariant, KeyButtonTrait,
-                            ImageOrString, KeyPressType};
+                            ImageOrString, KeyPressType,BlankEnum};
+
 use conrod;
 use conrod::widget;
 use conrod::widget::primitive::image::Image;
@@ -15,6 +16,7 @@ impl KeyButtonTrait for KeyButton {
             &KeyVariant::EdgeRow3Num(_, _) => static_style.edge_row3.0,
             &KeyVariant::StringHold(_, _) => static_style.normal.0,
             &KeyVariant::Spacebar(_, _) => static_style.spacebar,
+            &KeyVariant::Blank(_,_)=>static_style.normal.0,
             &KeyVariant::Closure(ref a, _) => {
                 match a {
                     &ClosureVariant::EdgeRow3(_) => static_style.edge_row3.0,
@@ -79,6 +81,9 @@ impl KeyButtonTrait for KeyButton {
                     }
                 }
             }
+            &KeyVariant::Blank(_,_)=>{
+
+            }
             &KeyVariant::Closure(_, ref c) => {
                 (c)(te, keypadvariant);
             }
@@ -105,6 +110,7 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::StringHold(String::from("i"),String::from("8"))),
     KeyButton(KeyVariant::StringHold(String::from("o"),String::from("9"))),
     KeyButton(KeyVariant::StringHold(String::from("p"),String::from("0"))),
+    KeyButton(KeyVariant::Blank(0.5,BlankEnum::flat)), //10
     KeyButton(KeyVariant::StringOnly(String::from("a"))),
     KeyButton(KeyVariant::StringOnly(String::from("s"))),
     KeyButton(KeyVariant::StringOnly(String::from("d"))),
@@ -114,13 +120,15 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::StringOnly(String::from("j"))),
     KeyButton(KeyVariant::StringOnly(String::from("k"))),
     KeyButton(KeyVariant::StringOnly(String::from("l"))),
+    KeyButton(KeyVariant::Blank(0.5,BlankEnum::flat)), //20
+    KeyButton(KeyVariant::Blank(0.0,BlankEnum::flat)), //21
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image(images[0])),Box::new(|_,kpv|{match kpv{
         &mut KeyPadVariant::Letter(1)=>{
             *kpv= KeyPadVariant::Letter(2);
         },&mut KeyPadVariant::Letter(2)=>{
             *kpv = KeyPadVariant::Letter(1);
         },_=>{}
-    }}))),
+    }}))), //22
     KeyButton(KeyVariant::StringOnly(String::from("z"))),
     KeyButton(KeyVariant::StringOnly(String::from("x"))),
     KeyButton(KeyVariant::StringOnly(String::from("c"))),
@@ -144,6 +152,7 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::Num(String::from("8"),String::from("["))),
     KeyButton(KeyVariant::Num(String::from("9"),String::from("]"))),
     KeyButton(KeyVariant::Num(String::from("0"),String::from("|"))),
+    KeyButton(KeyVariant::Blank(0.0,BlankEnum::flat)), //10
     KeyButton(KeyVariant::Num(String::from("@"),String::from("$"))),
     KeyButton(KeyVariant::Num(String::from("#"),String::from("€"))),
     KeyButton(KeyVariant::Num(String::from("%"),String::from("£"))),
@@ -153,8 +162,9 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::Num(String::from("-"),String::from("§"))),
     KeyButton(KeyVariant::Num(String::from("+"),String::from("^"))),
     KeyButton(KeyVariant::Num(String::from("("),String::from("`"))),
-    KeyButton(KeyVariant::Num(String::from(")"),String::from("∘"))),
-    KeyButton(KeyVariant::EdgeRow3Num(String::from("1/3"),String::from("2/3"))),
+    KeyButton(KeyVariant::Num(String::from(")"),String::from("∘"))),//20
+    KeyButton(KeyVariant::EdgeRow3Num(String::from("1/3"),String::from("2/3"))), //21
+    KeyButton(KeyVariant::Blank(0.0,BlankEnum::image(images[0]))), //22
     KeyButton(KeyVariant::Num(String::from("?"),String::from("¿"))),
     KeyButton(KeyVariant::Num(String::from("!"),String::from("¡"))),
     KeyButton(KeyVariant::Num(String::from("\""),String::from("\\"))),

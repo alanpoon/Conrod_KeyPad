@@ -62,7 +62,7 @@ fn main() {
     let mut c = 0;
     let mut keypadvariant = keypad::KeyPadVariant::Letter(1);
     'render: loop {
-        let sixteen_ms = std::time::Duration::from_millis(100);
+        let sixteen_ms = std::time::Duration::from_millis(16);
         let now = std::time::Instant::now();
         let duration_since_last_update = now.duration_since(last_update);
         if duration_since_last_update < sixteen_ms {

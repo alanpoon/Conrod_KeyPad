@@ -3,7 +3,7 @@ use conrod::{widget, Colorable, Labelable, Positionable, Sizeable, Widget, image
 use conrod::widget::primitive::image::Image;
 use conrod;
 use custom_widget::keybut;
-use custom_widget::keybut::KeyButEnum;
+use custom_widget::keybut::{KeyButEnum};
 use application;
 #[derive(Clone)]
 pub enum KeyPadVariant {
@@ -14,8 +14,12 @@ pub enum KeyPressType {
     press,
     hold,
 }
-
+pub enum BlankEnum{
+    flat,
+    image(widget::Image)
+}
 pub enum KeyVariant {
+    Blank(f64,BlankEnum), //spacing multiply by width, used as spacing, KeyButEnum needs to be normalize
     StringOnly(String),
     StringHold(String, String),
     Closure(ClosureVariant, Box<Fn(&mut String, &mut KeyPadVariant)>),
@@ -31,6 +35,7 @@ pub enum ClosureVariant {
     EdgeRow3(ImageOrString),
     EdgeRow4(ImageOrString),
 }
+
 pub trait KeyButtonTrait {
     fn dimension(&self, application::KeyButtonStyle) -> conrod::position::Dimensions;
     fn get_variant(&self) -> &KeyVariant;
@@ -223,6 +228,13 @@ impl<'a, T> Widget for KeyPadView<'a, T>
                         lstring = numpad2.clone();
                         KeyButEnum::flat(keybut::Button::new().label(&lstring))
                     }
+                },
+                &KeyVariant::Blank(ref _w_multipler,ref blankenum)=>{
+                    match blankenum{
+                        &BlankEnum::flat=>KeyButEnum::blank_flat(_w_multipler.clone(),keybut::Button::new().label(&"")),
+                        &BlankEnum::image(ref _i)=>KeyButEnum::blank_image(_w_multipler.clone(),keybut::Button::image(_i.clone()))
+                    }
+                    
                 }
             };
             match y {
@@ -256,6 +268,13 @@ impl<'a, T> Widget for KeyPadView<'a, T>
                             self.keypad_variant = keypad_variant;
                         }
                     }
+                }
+                KeyButEnum::blank_flat(_w_multipler,j)=>{
+                    item.set(j,k_h.dimension(self.static_style)[0]*_w_multipler,ui);
+                }
+                KeyButEnum::blank_image(_w_multipler,j)=>{
+                       let jj = j.w(k_h.dimension(self.static_style)[0]*_w_multipler).h(k_h.dimension(self.static_style)[1]);
+                        item.set(jj, k_h.dimension(self.static_style)[0]*_w_multipler, ui);
                 }
             }
 
