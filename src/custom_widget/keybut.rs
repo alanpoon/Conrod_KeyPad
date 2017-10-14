@@ -220,7 +220,12 @@ impl<'a> Widget for Button<'a, Image> {
         let (interaction, times_triggered) = interaction_and_times_triggered(id, ui);
         let color = color_from_interaction(style.color(&ui.theme), interaction);
         bordered_rectangle(id, state.rectangle, rect, color, style, ui);
-
+        match interaction{
+            Interaction::Hover=>{
+                println!("hovering id:{:?}",id);
+            },
+            _=>{}
+        }
         // Instantiate the image.
         let widget_image = show;
         let (x, y, w, h) = rect.x_y_w_h();
@@ -255,7 +260,12 @@ impl<'a> Widget for Button<'a, Flat> {
 
         let (interaction, times_triggered) = interaction_and_times_triggered(id, ui);
         let color = color_from_interaction(style.color(&ui.theme), interaction);
-
+        match interaction{
+            Interaction::Hover=>{
+                println!("hovering id:{:?}",id);
+            },
+            _=>{}
+        }
         bordered_rectangle(id, state.rectangle, rect, color, style, ui);
 
         // Label widget.

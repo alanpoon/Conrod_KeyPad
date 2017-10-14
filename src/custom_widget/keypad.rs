@@ -50,7 +50,7 @@ pub struct KeyPadView<'a, T: KeyButtonTrait + 'a> {
     /// Whether the button is currently enabled, i.e. whether it responds to
     /// user input.
     enabled: bool,
-    pub keypad_variant: KeyPadVariant,
+    pub keypad_variant:&'a mut KeyPadVariant,
     numkeyvec: &'a Vec<T>,
     stringkeyvec: &'a Vec<T>,
     static_style: application::KeyButtonStyle,
@@ -88,6 +88,7 @@ impl<'a, T> KeyPadView<'a, T>
 {
     /// Create a button context to be built upon.
     pub fn new(te: &'a mut String,
+               keypad_variant:&'a mut KeyPadVariant,
                numkeyvec: &'a Vec<T>,
                stringkeyvec: &'a Vec<T>,
                keyboard_style: application::KeyButtonStyle)
@@ -97,7 +98,7 @@ impl<'a, T> KeyPadView<'a, T>
             text_edit: te,
             style: Style::default(),
             enabled: true,
-            keypad_variant: KeyPadVariant::Letter(1),
+            keypad_variant: keypad_variant,
             numkeyvec: numkeyvec,
             stringkeyvec: stringkeyvec,
             static_style: keyboard_style,
@@ -150,8 +151,8 @@ impl<'a, T> Widget for KeyPadView<'a, T>
         widget::Canvas::new().middle_of(id).set(state.ids.canvas, ui);
 
         let (k_hash, len) = match self.keypad_variant {
-            KeyPadVariant::Num(_) => (self.numkeyvec, self.numkeyvec.len()),
-            KeyPadVariant::Letter(_) => (self.stringkeyvec, self.stringkeyvec.len()), //lowercase
+            &mut KeyPadVariant::Num(_) => (self.numkeyvec, self.numkeyvec.len()),
+            &mut KeyPadVariant::Letter(_) => (self.stringkeyvec, self.stringkeyvec.len()), //lowercase
         };
 
         //0
@@ -206,7 +207,7 @@ impl<'a, T> Widget for KeyPadView<'a, T>
                     }
                 }
                 &KeyVariant::Num(ref numpad1, ref numpad2) => {
-                    if let KeyPadVariant::Num(1) = self.keypad_variant {
+                    if let &mut KeyPadVariant::Num(1) = self.keypad_variant {
                         lstring = numpad1.clone();
                         KeyButEnum::flat(keybut::Button::new().label(&lstring))
                     } else {
@@ -215,7 +216,7 @@ impl<'a, T> Widget for KeyPadView<'a, T>
                     }
                 }
                 &KeyVariant::EdgeRow3Num(ref numpad1, ref numpad2) => {
-                    if let KeyPadVariant::Num(1) = self.keypad_variant {
+                    if let &mut KeyPadVariant::Num(1) = self.keypad_variant {
                         lstring = numpad1.clone();
                         KeyButEnum::flat(keybut::Button::new().label(&lstring))
                     } else {
@@ -230,6 +231,7 @@ impl<'a, T> Widget for KeyPadView<'a, T>
                     let jk = item.set(jj, k_h.dimension(self.static_style)[0], ui);
                     if jk.clone().was_clicked() {
                         if jk.was_hold() {
+                            println!("holding");
                             let mut keypad_variant = self.keypad_variant;
                             k_h.process(self.text_edit, KeyPressType::hold, &mut keypad_variant);
                             self.keypad_variant = keypad_variant;

@@ -23,7 +23,8 @@ widget_ids! {
     pub struct Ids {
          master,
          keyboard,
-         image
+         image,
+         text_edit
     }
 }
 fn main() {
@@ -49,10 +50,17 @@ fn main() {
     let mut events = Vec::new();
     let mut ids = Ids::new(ui.widget_id_generator());
     let mut app = application::Application::new(LIB_PATH);
-    let mut text_edit = "".to_owned();
+    let mut demo_text_edit = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \
+            Mauris aliquet porttitor tellus vel euismod. Integer lobortis volutpat bibendum. Nulla \
+            finibus odio nec elit condimentum, rhoncus fermentum purus lacinia. Interdum et malesuada \
+            fames ac ante ipsum primis in faucibus. Cras rhoncus nisi nec dolor bibendum pellentesque. \
+            Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. \
+            Quisque commodo nibh hendrerit nunc sollicitudin sodales. Cras vitae tempus ipsum. Nam \
+            magna est, efficitur suscipit dolor eu, consectetur consectetur urna.".to_owned();
     let mut last_update = std::time::Instant::now();
     let mut last_update_sys = std::time::SystemTime::now();
     let mut c = 0;
+    let mut keypadvariant = keypad::KeyPadVariant::Letter(1);
     'render: loop {
         let sixteen_ms = std::time::Duration::from_millis(100);
         let now = std::time::Instant::now();
@@ -99,8 +107,19 @@ fn main() {
             // Set the widgets.
             let ui = &mut ui.set_widgets();
             widget::Canvas::new().color(color::LIGHT_BLUE).set(ids.master, ui);
+            for edit in widget::TextEdit::new(&mut demo_text_edit)
+            .color(color::WHITE)
+            .padded_w_of(ids.master, 20.0)
+            .mid_top_of(ids.master)
+            .center_justify()
+            .line_spacing(2.5)
+            .restrict_to_height(false) // Let the height grow infinitely and scroll.
+            .set(ids.text_edit, ui) {
+                demo_text_edit = edit;
+            }
             let screen_dim = ui.wh_of(ids.master).unwrap();
-            let h = keypad::KeyPadView::new(&mut text_edit,
+            let h = keypad::KeyPadView::new(&mut demo_text_edit,
+                                            &mut keypadvariant,
                                             &string_vec,
                                             &num_vec,
                                             app.get_keyboard_styles([screen_dim[0],
