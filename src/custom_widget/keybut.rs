@@ -1,16 +1,17 @@
 //! The `Button` widget and related items.
 
 use conrod::{Color, color, Colorable, FontSize, Borderable, Labelable, Positionable, Sizeable,
-             UiCell, Widget, image, text, Range};
+             UiCell, Widget, image, text, Range, event, input};
 use conrod::widget::primitive::image::Image;
 use conrod::position::{self, Align, Rect, Scalar};
 use conrod::widget;
-
+use std;
+use std::time::{Duration, Instant};
 pub enum KeyButEnum<'a> {
     flat(Button<'a, Flat>),
     image(Button<'a, widget::Image>),
-    blank_flat(f64,Button<'a,Flat>), //width mutliplier
-    blank_image(f64,Button<'a, widget::Image>)
+    blank_flat(f64, Button<'a, Flat>), //width mutliplier
+    blank_image(f64, Button<'a, widget::Image>),
 }
 
 /// A pressable button widget whose reaction is triggered upon release.
@@ -59,6 +60,31 @@ pub struct Style {
     #[conrod(default = "position::Relative::Align(Align::Middle)")]
     pub label_y: Option<position::Relative>,
 }
+/// The State of the Button widget that will be cached within the Ui.
+pub struct FlatState {
+    /// Track whether some sort of dragging is currently occurring.
+    drag: Drag,
+    ids: FlatIds,
+}
+impl FlatState {
+    fn change_drag(&mut self, drag: Drag) {
+        self.drag = drag;
+    }
+}
+/// The State of the Button widget that will be cached within the Ui.
+pub struct ImageState {
+    /// Track whether some sort of dragging is currently occurring.
+    drag: Drag,
+    ids: ImageIds,
+}
+/// Track whether some sort of dragging is currently occurring.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Drag {
+    /// The drag is currently selecting a range of text.
+    Selecting(Instant),
+    None,
+    Terminate,
+}
 
 widget_ids! {
     /// Identifiers for a "flat" button.
@@ -84,8 +110,8 @@ widget_ids! {
 #[derive(Copy, Clone)]
 pub struct Flat;
 
-#[derive(Copy, Clone)]
-enum Interaction {
+#[derive(Copy, Clone,Debug)]
+pub enum Interaction {
     Idle,
     Hover,
     Press,
@@ -98,31 +124,26 @@ enum Interaction {
 /// since the last update.
 #[derive(Clone, Debug)]
 #[allow(missing_copy_implementations)]
-pub struct TimesClicked(pub u16);
+pub struct TimesClicked(pub Interaction);
 
 
 impl TimesClicked {
     /// `true` if the `Button` was clicked one or more times.
     pub fn was_clicked(self) -> bool {
-        self.0 > 0
+        if let Interaction::Press = self.0 {
+            true
+        } else {
+            false
+        }
     }
     pub fn was_hold(self) -> bool {
-        self.0 > 2
-    }
-}
-
-impl Iterator for TimesClicked {
-    type Item = ();
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.0 > 0 {
-            self.0 -= 1;
-            Some(())
+        if let Interaction::Hold = self.0 {
+            true
         } else {
-            None
+            false
         }
     }
 }
-
 
 impl<'a> Button<'a, Flat> {
     /// Begin building a flat-colored `Button` widget.
@@ -203,12 +224,15 @@ impl<'a> Button<'a, Image> {
     }
 }
 impl<'a> Widget for Button<'a, Image> {
-    type State = ImageIds;
+    type State = ImageState;
     type Style = Style;
     type Event = TimesClicked;
 
     fn init_state(&self, id_gen: widget::id::Generator) -> Self::State {
-        ImageIds::new(id_gen)
+        ImageState {
+            drag: Drag::None,
+            ids: ImageIds::new(id_gen),
+        }
     }
 
     fn style(&self) -> Style {
@@ -219,14 +243,15 @@ impl<'a> Widget for Button<'a, Image> {
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
         let widget::UpdateArgs { id, state, style, rect, ui, .. } = args;
         let Button { show, .. } = self;
-        let (interaction, times_triggered) = interaction_and_times_triggered(id, ui);
+        let mut drag = state.drag;
+        let interaction = interaction_and_times_triggered(id, &mut drag, ui);
         let color = color_from_interaction(style.color(&ui.theme), interaction);
-        bordered_rectangle(id, state.rectangle, rect, color, style, ui);
-        match interaction{
-            Interaction::Hover=>{
-                println!("hovering id:{:?}",id);
-            },
-            _=>{}
+        bordered_rectangle(id, state.ids.rectangle, rect, color, style, ui);
+        match interaction {
+            Interaction::Hover => {
+                //  println!("hovering id:{:?}", id);
+            }
+            _ => {}
         }
         // Instantiate the image.
         let widget_image = show;
@@ -237,18 +262,21 @@ impl<'a> Widget for Button<'a, Image> {
             .parent(id)
             .graphics_for(id);
 
-        image.set(state.image, ui);
-        TimesClicked(times_triggered)
+        image.set(state.ids.image, ui);
+        TimesClicked(interaction)
     }
 }
 
 impl<'a> Widget for Button<'a, Flat> {
-    type State = FlatIds;
+    type State = FlatState;
     type Style = Style;
     type Event = TimesClicked;
 
     fn init_state(&self, id_gen: widget::id::Generator) -> Self::State {
-        FlatIds::new(id_gen)
+        FlatState {
+            drag: Drag::None,
+            ids: FlatIds::new(id_gen),
+        }
     }
 
     fn style(&self) -> Style {
@@ -257,27 +285,28 @@ impl<'a> Widget for Button<'a, Flat> {
 
     /// Update the state of the Button.
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        let widget::UpdateArgs { id, state, style, rect, ui, .. } = args;
+        let widget::UpdateArgs { id, mut state, style, rect, ui, .. } = args;
         let Button { maybe_label, maybe_label_with_superscript, .. } = self;
-
-        let (interaction, times_triggered) = interaction_and_times_triggered(id, ui);
+        let mut drag = state.drag.clone();
+        let interaction = interaction_and_times_triggered(id, &mut drag, ui);
         let color = color_from_interaction(style.color(&ui.theme), interaction);
-        match interaction{
-            Interaction::Hover=>{
-                println!("hovering id:{:?}",id);
-            },
-            _=>{}
+        state.update(|state| state.change_drag(drag));
+        match interaction {
+            Interaction::Hover => {
+                // println!("hovering id:{:?}", id);
+            }
+            _ => {}
         }
-        bordered_rectangle(id, state.rectangle, rect, color, style, ui);
+        bordered_rectangle(id, state.ids.rectangle, rect, color, style, ui);
 
         // Label widget.
         if let Some(l) = maybe_label {
-            label(id, state.label, l, style, ui);
+            label(id, state.ids.label, l, style, ui);
         }
         if let Some((l, s)) = maybe_label_with_superscript {
-            label_with_superscript(id, state.label, state.superscript, l, s, style, ui);
+            label_with_superscript(id, state.ids.label, state.ids.superscript, l, s, style, ui);
         }
-        TimesClicked(times_triggered)
+        TimesClicked(interaction)
     }
 }
 
@@ -292,16 +321,70 @@ fn color_from_interaction(color: Color, interaction: Interaction) -> Color {
     }
 }
 
-fn interaction_and_times_triggered(button_id: widget::Id, ui: &UiCell) -> (Interaction, u16) {
-    let input = ui.widget_input(button_id);
-    let interaction = input.mouse().map_or(Interaction::Idle,
-                                           |mouse| if mouse.buttons.left().is_down() {
-                                               Interaction::Press
-                                           } else {
-                                               Interaction::Hover
-                                           });
-    let times_triggered = (input.clicks().left().count() + input.taps().count()) as u16;
-    (interaction, times_triggered)
+fn interaction_and_times_triggered(button_id: widget::Id,
+                                   drag: &mut Drag,
+                                   ui: &UiCell)
+                                   -> Interaction {
+    let mut interaction = Interaction::Idle;
+    for widget_event in ui.widget_input(button_id).events() {
+        match widget_event {
+            event::Widget::Press(press) => {
+                match press.button {
+                    event::Button::Mouse(input::MouseButton::Left, rel_xy) => {
+                        let now = Instant::now();
+                        match drag {
+                            &mut Drag::Selecting(a) => {
+                                println!("a.elapsed {:?}", a.elapsed());
+                                if a.elapsed() >= Duration::from_secs(1) {
+                                    interaction = Interaction::Hold;
+                                    *drag = Drag::Terminate;
+                                }
+
+                            }
+                            &mut Drag::None => {
+                                println!("a.None");
+                                *drag = Drag::Selecting(now);
+                            }
+                            &mut Drag::Terminate => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            event::Widget::Click(click) => {
+                match (click, drag.clone()) {
+                    (event::Click { button: input::MouseButton::Left, .. }, Drag::Terminate) => {
+                        println!("clicked");
+                        *drag = Drag::None;
+                    }
+                    _ => {}
+                }
+            }
+            event::Widget::Release(release) => {
+                if let event::Button::Mouse(input::MouseButton::Left, _) = release.button {
+                    match drag {
+                        &mut Drag::Selecting(a) => {
+                            if a.elapsed() >= Duration::from_secs(1) {
+                                interaction = Interaction::Press;
+                                *drag = Drag::Terminate;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            /*   event::Widget::Click(click)=>match click.button{
+                    interaction = Interaction::Press;
+                },*/
+            _ => {
+                interaction = Interaction::Hover;
+            }
+        }
+    }
+    println!("interaction {:?} drag{:?}",
+             interaction.clone(),
+             drag.clone());
+    interaction
 }
 
 fn bordered_rectangle(button_id: widget::Id,
@@ -358,6 +441,7 @@ fn label_with_superscript(button_id: widget::Id,
     let y = style.label_y(&ui.theme);
     let justify = style.label_justify(&ui.theme);
     let font_id = style.label_font_id(&ui.theme).or(ui.fonts.ids().next());
+    let button_rect_w = ui.w_of(button_id).unwrap();
     widget::Text::new(label)
         .and_then(font_id, widget::Text::font_id)
         .x_position_relative_to(button_id, x)
@@ -370,9 +454,9 @@ fn label_with_superscript(button_id: widget::Id,
         .set(label_id, ui);
     widget::Text::new(superscript)
         .and_then(font_id, widget::Text::font_id)
-        .top_right_of(button_id)
-        .color(color::GREY)
-        .font_size(font_size - 5)
+        .top_right_with_margin_on(button_id, button_rect_w * 0.1)
+        .color(color::BLACK)
+        .font_size(font_size - 2)
         .set(superscript_id, ui);
 }
 

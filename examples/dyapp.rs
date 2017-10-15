@@ -18,6 +18,7 @@ use conrod::backend::glium::glium::{self, glutin, Surface};
 use conrod_keypad::dyapplication as application;
 use conrod_keypad::custom_widget::keypad;
 use conrod_keypad::english;
+use std::time::Instant;
 const LIB_PATH: &'static str = "target/debug/libtest_shared.so";
 widget_ids! {
     pub struct Ids {
@@ -26,6 +27,10 @@ widget_ids! {
          image,
          text_edit
     }
+}
+pub enum ConrodMessage {
+    Event(Instant, conrod::event::Input),
+    Thread(Instant),
 }
 fn main() {
     let window = glutin::WindowBuilder::new();
@@ -47,7 +52,6 @@ fn main() {
     let (w, h) = (keypad_png.get_width(), keypad_png.get_height().unwrap());
     let keypad_png = image_map.insert(keypad_png);
     let events_loop_proxy = events_loop.create_proxy();
-    let mut events = Vec::new();
     let mut ids = Ids::new(ui.widget_id_generator());
     let mut app = application::Application::new(LIB_PATH);
     let mut demo_text_edit = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \
@@ -61,25 +65,16 @@ fn main() {
     let mut last_update_sys = std::time::SystemTime::now();
     let mut c = 0;
     let mut keypadvariant = keypad::KeyPadVariant::Letter(1);
+    let mut captured_event: Option<ConrodMessage> = None;
+    let sixteen_ms = std::time::Duration::from_millis(100);
+
     'render: loop {
-        let sixteen_ms = std::time::Duration::from_millis(16);
-        let now = std::time::Instant::now();
-        let duration_since_last_update = now.duration_since(last_update);
-        if duration_since_last_update < sixteen_ms {
-            std::thread::sleep(sixteen_ms - duration_since_last_update);
-        }
         application::Application::in_loop(&mut app, LIB_PATH, &mut last_update_sys);
-        let (string_vec, num_vec) = english::populate(keypad_png, app.get_spriteinfo());
-        events.clear();
-
-        // Get all the new events since the last frame.
-        events_loop.poll_events(|event| { events.push(event); });
-        // Process the events.
-        for event in events.drain(..) {
-
-            // Break from the loop upon `Escape` or closed window.
+        let english_tuple = english::populate(keypad_png, app.get_spriteinfo());
+        let mut to_break = false;
+        let mut to_continue = false;
+        events_loop.poll_events(|event| {
             match event.clone() {
-
                 glium::glutin::Event::WindowEvent { event, .. } => {
                     match event {
                         glium::glutin::WindowEvent::Closed |
@@ -89,46 +84,58 @@ fn main() {
                                     ..
                                 },
                                 ..
-                            } => break 'render,
+                            } => {to_break=true;}
                         _ => (),
                     }
                 }
-                _ => (),
-            };
-
-            // Use the `winit` backend feature to convert the winit event to a conrod input.
-            let input = match conrod::backend::winit::convert_event(event, &display) {
-                None => continue,
-                Some(input) => input,
-            };
-            let f = "alan".to_owned();
-            // Handle the input with the `Ui`.
-            ui.handle_event(input);
-            // Set the widgets.
-            let ui = &mut ui.set_widgets();
-            widget::Canvas::new().color(color::LIGHT_BLUE).set(ids.master, ui);
-            for edit in widget::TextEdit::new(&mut demo_text_edit)
-            .color(color::WHITE)
-            .padded_w_of(ids.master, 20.0)
-            .mid_top_of(ids.master)
-            .center_justify()
-            .line_spacing(2.5)
-            .restrict_to_height(false) // Let the height grow infinitely and scroll.
-            .set(ids.text_edit, ui) {
-                demo_text_edit = edit;
+                _ => {}
             }
-            let screen_dim = ui.wh_of(ids.master).unwrap();
-            let h = keypad::KeyPadView::new(&mut demo_text_edit,
-                                            &mut keypadvariant,
-                                            &string_vec,
-                                            &num_vec,
-                                            app.get_keyboard_styles([screen_dim[0],
-                                                                     screen_dim[1] * 0.4]));
-            h.mid_bottom_of(ids.master)
-                .w(screen_dim[0])
-                .h(screen_dim[1] * 0.4)
-                .set(ids.keyboard, ui);
-            c += 1;
+            let input = match conrod::backend::winit::convert_event(event.clone(), &display) {
+                None => {
+                    to_continue = true;
+                }
+                Some(input) => {
+                    let d = std::time::Instant::now();
+                    captured_event = Some(ConrodMessage::Event(d, input));
+                }
+            };
+        });
+        if to_break {
+            break 'render;
+        }
+        if to_continue {
+            continue;
+        }
+        match captured_event {
+            Some(ConrodMessage::Event(_, ref input)) => {
+                ui.handle_event(input.clone());
+                let mut ui = ui.set_widgets();
+                set_widgets(&mut ui,
+                            &mut demo_text_edit,
+                            &mut keypadvariant,
+                            &english_tuple,
+                            app.get_keyboard_styles([screen_w as f64, screen_h as f64 * 0.4]),
+                            &mut ids);
+            }
+            Some(ConrodMessage::Thread(t)) => {
+                let mut ui = ui.set_widgets();
+                let screen_dim = ui.wh_of(ids.master).unwrap();
+                set_widgets(&mut ui,
+                            &mut demo_text_edit,
+                            &mut keypadvariant,
+                            &english_tuple,
+                            app.get_keyboard_styles([screen_w as f64, screen_h as f64 * 0.4]),
+                            &mut ids);
+            }
+            None => {
+                let now = std::time::Instant::now();
+                let duration_since_last_update = now.duration_since(last_update);
+                if duration_since_last_update < sixteen_ms {
+                    std::thread::sleep(sixteen_ms - duration_since_last_update);
+                }
+                let t = std::time::Instant::now();
+                captured_event = Some(ConrodMessage::Thread(t));
+            }
         }
 
         let primitives = ui.draw();
@@ -147,4 +154,34 @@ fn load_image(display: &glium::Display, path: &str) -> glium::texture::Texture2d
                                                                        image_dimensions);
     let texture = glium::texture::Texture2d::new(display, raw_image).unwrap();
     texture
+}
+fn set_widgets(ui: &mut conrod::UiCell,
+               demo_text_edit: &mut String,
+               keypadvariant: &mut keypad::KeyPadVariant,
+               english_tuple: &(Vec<english::KeyButton>, Vec<english::KeyButton>),
+               keybuttonstyle: application::KeyButtonStyle,
+               ids: &mut Ids) {
+    widget::Canvas::new().color(color::LIGHT_BLUE).set(ids.master, ui);
+    for edit in widget::TextEdit::new(demo_text_edit)
+            .color(color::WHITE)
+            .padded_w_of(ids.master, 20.0)
+            .mid_top_of(ids.master)
+            .center_justify()
+            .line_spacing(2.5)
+            .restrict_to_height(false) // Let the height grow infinitely and scroll.
+            .set(ids.text_edit, ui) {
+        *demo_text_edit = edit;
+    }
+    let screen_dim = ui.wh_of(ids.master).unwrap();
+    let h = keypad::KeyPadView::new(demo_text_edit,
+                                    keypadvariant,
+                                    &english_tuple.0,
+                                    &english_tuple.1,
+                                    keybuttonstyle
+                                    //app.get_keyboard_styles([screen_dim[0], screen_dim[1] * 0.4])
+                                    );
+    h.mid_bottom_of(ids.master)
+        .w(screen_dim[0])
+        .h(screen_dim[1] * 0.4)
+        .set(ids.keyboard, ui);
 }

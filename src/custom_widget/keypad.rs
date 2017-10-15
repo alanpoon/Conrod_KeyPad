@@ -3,9 +3,10 @@ use conrod::{widget, Colorable, Labelable, Positionable, Sizeable, Widget, image
 use conrod::widget::primitive::image::Image;
 use conrod;
 use custom_widget::keybut;
-use custom_widget::keybut::{KeyButEnum};
+use custom_widget::keybut::KeyButEnum;
 use application;
-#[derive(Clone)]
+use std;
+#[derive(Clone,Debug)]
 pub enum KeyPadVariant {
     Num(usize), //1:page 1, 2:page2
     Letter(usize), //1:lowercase,2:uppercase
@@ -14,22 +15,21 @@ pub enum KeyPressType {
     press,
     hold,
 }
-pub enum BlankEnum{
+pub enum BlankEnum {
     flat,
-    image(widget::Image)
+    image(widget::Image),
 }
 pub enum KeyVariant {
-    Blank(f64,BlankEnum), //spacing multiply by width, used as spacing, KeyButEnum needs to be normalize
+    Blank(f64, BlankEnum), //spacing multiply by width, used as spacing, KeyButEnum needs to be normalize
     StringOnly(String),
     StringHold(String, String),
     Closure(ClosureVariant, Box<Fn(&mut String, &mut KeyPadVariant)>),
     Num(String, String),
-    EdgeRow3Num(String, String),
     Spacebar(Image, String),
 }
 pub enum ImageOrString {
-    Image(Image),
-    StringOnly(String),
+    Image([Image; 2]),
+    StringOnly([String; 2]),
 }
 pub enum ClosureVariant {
     EdgeRow3(ImageOrString),
@@ -55,7 +55,7 @@ pub struct KeyPadView<'a, T: KeyButtonTrait + 'a> {
     /// Whether the button is currently enabled, i.e. whether it responds to
     /// user input.
     enabled: bool,
-    pub keypad_variant:&'a mut KeyPadVariant,
+    pub keypad_variant: &'a mut KeyPadVariant,
     numkeyvec: &'a Vec<T>,
     stringkeyvec: &'a Vec<T>,
     static_style: application::KeyButtonStyle,
@@ -93,9 +93,9 @@ impl<'a, T> KeyPadView<'a, T>
 {
     /// Create a button context to be built upon.
     pub fn new(te: &'a mut String,
-               keypad_variant:&'a mut KeyPadVariant,
-               numkeyvec: &'a Vec<T>,
+               keypad_variant: &'a mut KeyPadVariant,
                stringkeyvec: &'a Vec<T>,
+               numkeyvec: &'a Vec<T>,
                keyboard_style: application::KeyButtonStyle)
                -> Self {
         KeyPadView {
@@ -174,7 +174,14 @@ impl<'a, T> Widget for KeyPadView<'a, T>
             let y = match k_h.get_variant() {
                 &KeyVariant::StringOnly(ref _l) => {
                     lstring = _l.clone();
-                    KeyButEnum::flat(keybut::Button::new().label(&lstring))
+                    match self.keypad_variant {
+                        &mut KeyPadVariant::Letter(2) => {
+                            lstring = lstring.to_uppercase();
+                            KeyButEnum::flat(keybut::Button::new().label(&lstring))
+                        }
+                        _ => KeyButEnum::flat(keybut::Button::new().label(&lstring)),
+                    }
+
                 }
                 &KeyVariant::StringHold(ref _l, ref _s) => {
                     lstring = _l.clone();
@@ -189,22 +196,30 @@ impl<'a, T> Widget for KeyPadView<'a, T>
                     match _cvariant {
                         &ClosureVariant::EdgeRow3(ref _i_or_s) => {
                             match _i_or_s {
-                                &ImageOrString::Image(ref _i) => {
-                                    KeyButEnum::image(keybut::Button::image(_i.clone()))
+                                &ImageOrString::Image(ref _iv) => {
+                                    match self.keypad_variant {
+                                        &mut KeyPadVariant::Letter(a)=> KeyButEnum::image(keybut::Button::image(_iv[a-1].clone())),
+                                        _=> KeyButEnum::image(keybut::Button::image(_iv[0].clone())),
+                                    }
                                 }
-                                &ImageOrString::StringOnly(ref _l) => {
-                                    lstring = _l.clone();
-                                    KeyButEnum::flat(keybut::Button::new().label(&lstring))
+                                &ImageOrString::StringOnly(ref _lv) => {
+                                    match self.keypad_variant {
+                                        &mut KeyPadVariant::Num(a) => {
+                                            lstring = _lv[a - 1].clone();
+                                            KeyButEnum::flat(keybut::Button::new().label(&lstring))
+                                        }
+                                        _ => KeyButEnum::flat(keybut::Button::new()),
+                                    }
                                 }
                             }
                         }
                         &ClosureVariant::EdgeRow4(ref _i_or_s) => {
                             match _i_or_s {
-                                &ImageOrString::Image(ref _i) => {
-                                    KeyButEnum::image(keybut::Button::image(_i.clone()))
+                                &ImageOrString::Image(ref _iv) => {
+                                    KeyButEnum::image(keybut::Button::image(_iv[0].clone()))
                                 }
                                 &ImageOrString::StringOnly(ref _l) => {
-                                    lstring = _l.clone();
+                                    lstring = _l[0].clone();
                                     KeyButEnum::flat(keybut::Button::new().label(&lstring))
                                 }
                             }
@@ -220,38 +235,33 @@ impl<'a, T> Widget for KeyPadView<'a, T>
                         KeyButEnum::flat(keybut::Button::new().label(&lstring))
                     }
                 }
-                &KeyVariant::EdgeRow3Num(ref numpad1, ref numpad2) => {
-                    if let &mut KeyPadVariant::Num(1) = self.keypad_variant {
-                        lstring = numpad1.clone();
-                        KeyButEnum::flat(keybut::Button::new().label(&lstring))
-                    } else {
-                        lstring = numpad2.clone();
-                        KeyButEnum::flat(keybut::Button::new().label(&lstring))
+
+                &KeyVariant::Blank(ref _w_multipler, ref blankenum) => {
+                    match blankenum {
+                        &BlankEnum::flat => {
+                            KeyButEnum::blank_flat(_w_multipler.clone(),
+                                                   keybut::Button::new().label(&""))
+                        }
+                        &BlankEnum::image(ref _i) => {
+                            KeyButEnum::blank_image(_w_multipler.clone(),
+                                                    keybut::Button::image(_i.clone()))
+                        }
                     }
-                },
-                &KeyVariant::Blank(ref _w_multipler,ref blankenum)=>{
-                    match blankenum{
-                        &BlankEnum::flat=>KeyButEnum::blank_flat(_w_multipler.clone(),keybut::Button::new().label(&"")),
-                        &BlankEnum::image(ref _i)=>KeyButEnum::blank_image(_w_multipler.clone(),keybut::Button::image(_i.clone()))
-                    }
-                    
                 }
             };
             match y {
                 KeyButEnum::flat(j) => {
                     let jj = j.wh(k_h.dimension(self.static_style)).border_color(color::BLACK);
                     let jk = item.set(jj, k_h.dimension(self.static_style)[0], ui);
-                    if jk.clone().was_clicked() {
-                        if jk.was_hold() {
-                            println!("holding");
-                            let mut keypad_variant = self.keypad_variant;
-                            k_h.process(self.text_edit, KeyPressType::hold, &mut keypad_variant);
-                            self.keypad_variant = keypad_variant;
-                        } else {
-                            let mut keypad_variant = self.keypad_variant;
-                            k_h.process(self.text_edit, KeyPressType::press, &mut keypad_variant);
-                            self.keypad_variant = keypad_variant;
-                        }
+                    if jk.clone().was_hold() {
+                        println!("holding");
+                        let mut keypad_variant = self.keypad_variant;
+                        k_h.process(self.text_edit, KeyPressType::hold, &mut keypad_variant);
+                        self.keypad_variant = keypad_variant;
+                    } else if jk.was_clicked() {
+                        let mut keypad_variant = self.keypad_variant;
+                        k_h.process(self.text_edit, KeyPressType::press, &mut keypad_variant);
+                        self.keypad_variant = keypad_variant;
                     }
                 }
                 KeyButEnum::image(j) => {
@@ -269,12 +279,13 @@ impl<'a, T> Widget for KeyPadView<'a, T>
                         }
                     }
                 }
-                KeyButEnum::blank_flat(_w_multipler,j)=>{
-                    item.set(j,k_h.dimension(self.static_style)[0]*_w_multipler,ui);
+                KeyButEnum::blank_flat(_w_multipler, j) => {
+                    item.set(j, k_h.dimension(self.static_style)[0] * _w_multipler, ui);
                 }
-                KeyButEnum::blank_image(_w_multipler,j)=>{
-                       let jj = j.w(k_h.dimension(self.static_style)[0]*_w_multipler).h(k_h.dimension(self.static_style)[1]);
-                        item.set(jj, k_h.dimension(self.static_style)[0]*_w_multipler, ui);
+                KeyButEnum::blank_image(_w_multipler, j) => {
+                    let jj = j.w(k_h.dimension(self.static_style)[0] * _w_multipler)
+                        .h(k_h.dimension(self.static_style)[1]);
+                    item.set(jj, k_h.dimension(self.static_style)[0] * _w_multipler, ui);
                 }
             }
 
