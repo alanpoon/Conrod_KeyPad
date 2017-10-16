@@ -87,8 +87,7 @@ pub fn populate(image_id: conrod::image::Id,
          widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(2.0)), //backspace
          widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(3.0)), //space
          widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(4.0))]; //enter
-    let letter_vec = vec![KeyButton(KeyVariant::StringHold(String::from("q"), String::from("1"))) 
- /*   KeyButton(KeyVariant::StringHold(String::from("w"),String::from("2"))),
+    let letter_vec = vec![KeyButton(KeyVariant::StringHold(String::from("q"), String::from("1"))) /*   KeyButton(KeyVariant::StringHold(String::from("w"),String::from("2"))),
     KeyButton(KeyVariant::StringHold(String::from("e"),String::from("3"))),
     KeyButton(KeyVariant::StringHold(String::from("r"),String::from("4"))),
     KeyButton(KeyVariant::StringHold(String::from("t"),String::from("5"))),
@@ -130,8 +129,7 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|te,_|{te.push_str(" \\");})))
     */];
 
-    let number_vec = vec![KeyButton(KeyVariant::Num(String::from("1"), String::from("~"))) 
- /*
+    let number_vec = vec![KeyButton(KeyVariant::Num(String::from("1"), String::from("~"))) /*
     KeyButton(KeyVariant::Num(String::from("2"),String::from("="))),
     KeyButton(KeyVariant::Num(String::from("3"),String::from("_"))),
     KeyButton(KeyVariant::Num(String::from("4"),String::from("<"))),

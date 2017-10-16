@@ -4,6 +4,7 @@ use conrod::{Color, color, Colorable, FontSize, Borderable, Labelable, Positiona
              UiCell, Widget, image, text, Range, event, input};
 use conrod::widget::primitive::image::Image;
 use conrod::position::{self, Align, Rect, Scalar};
+use conrod::widget::envelope_editor::EnvelopePoint;
 use conrod::widget;
 use std;
 use std::time::{Duration, Instant};
@@ -245,7 +246,7 @@ impl<'a> Widget for Button<'a, Image> {
         let Button { show, .. } = self;
         let mut drag = state.drag;
         let interaction = interaction_and_times_triggered(id, &mut drag, ui);
-        let color = color_from_interaction(style.color(&ui.theme), interaction);
+        let color = color_from_interaction(style.color(&ui.theme), interaction, &mut drag);
         bordered_rectangle(id, state.ids.rectangle, rect, color, style, ui);
         match interaction {
             Interaction::Hover => {
@@ -289,7 +290,7 @@ impl<'a> Widget for Button<'a, Flat> {
         let Button { maybe_label, maybe_label_with_superscript, .. } = self;
         let mut drag = state.drag.clone();
         let interaction = interaction_and_times_triggered(id, &mut drag, ui);
-        let color = color_from_interaction(style.color(&ui.theme), interaction);
+        let color = color_from_interaction(style.color(&ui.theme), interaction, &mut drag);
         state.update(|state| state.change_drag(drag));
         match interaction {
             Interaction::Hover => {
@@ -312,13 +313,19 @@ impl<'a> Widget for Button<'a, Flat> {
 
 
 
-fn color_from_interaction(color: Color, interaction: Interaction) -> Color {
-    match interaction {
-        Interaction::Idle => color,
-        Interaction::Hover => color.highlighted(),
-        Interaction::Press => color.clicked(),
-        Interaction::Hold => color.clicked(),
+fn color_from_interaction(color: Color, interaction: Interaction, drag: &mut Drag) -> Color {
+    match drag {
+        &mut Drag::Selecting(_) => color.highlighted(),
+        _ => {
+            match interaction {
+                Interaction::Idle => color,
+                Interaction::Hover => color.highlighted(),
+                Interaction::Press => color.clicked(),
+                Interaction::Hold => color.highlighted(),
+            }
+        }
     }
+
 }
 
 fn interaction_and_times_triggered(button_id: widget::Id,
@@ -334,15 +341,12 @@ fn interaction_and_times_triggered(button_id: widget::Id,
                         let now = Instant::now();
                         match drag {
                             &mut Drag::Selecting(a) => {
-                                println!("a.elapsed {:?}", a.elapsed());
                                 if a.elapsed() >= Duration::from_secs(1) {
                                     interaction = Interaction::Hold;
                                     *drag = Drag::Terminate;
                                 }
-
                             }
                             &mut Drag::None => {
-                                println!("a.None");
                                 *drag = Drag::Selecting(now);
                             }
                             &mut Drag::Terminate => {}
@@ -354,7 +358,6 @@ fn interaction_and_times_triggered(button_id: widget::Id,
             event::Widget::Click(click) => {
                 match (click, drag.clone()) {
                     (event::Click { button: input::MouseButton::Left, .. }, Drag::Terminate) => {
-                        println!("clicked");
                         *drag = Drag::None;
                     }
                     _ => {}
@@ -365,25 +368,39 @@ fn interaction_and_times_triggered(button_id: widget::Id,
                     match drag {
                         &mut Drag::Selecting(a) => {
                             if a.elapsed() >= Duration::from_secs(1) {
-                                interaction = Interaction::Press;
                                 *drag = Drag::Terminate;
+                            } else {
+                                *drag = Drag::None;
                             }
+                            interaction = Interaction::Press;
                         }
                         _ => {}
                     }
+                }
+            }
+            event::Widget::Drag(drag_event) if drag_event.button == input::MouseButton::Left => {
+                match drag {
+                    &mut Drag::Selecting(_) => {
+                        let dim = ui.wh_of(button_id).unwrap();
+                        if (drag_event.to.get_x().abs() > dim[0]) ||
+                           (drag_event.to.get_y().abs() > dim[1]) {
+                            *drag = Drag::None;
+                            interaction = Interaction::Idle;
+                        }
+                    }
+                    _ => {}
                 }
             }
             /*   event::Widget::Click(click)=>match click.button{
                     interaction = Interaction::Press;
                 },*/
             _ => {
-                interaction = Interaction::Hover;
+                if let Drag::None = *drag {
+                    interaction = Interaction::Hover;
+                }
             }
         }
     }
-    println!("interaction {:?} drag{:?}",
-             interaction.clone(),
-             drag.clone());
     interaction
 }
 

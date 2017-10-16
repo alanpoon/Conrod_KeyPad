@@ -254,7 +254,6 @@ impl<'a, T> Widget for KeyPadView<'a, T>
                     let jj = j.wh(k_h.dimension(self.static_style)).border_color(color::BLACK);
                     let jk = item.set(jj, k_h.dimension(self.static_style)[0], ui);
                     if jk.clone().was_hold() {
-                        println!("holding");
                         let mut keypad_variant = self.keypad_variant;
                         k_h.process(self.text_edit, KeyPressType::hold, &mut keypad_variant);
                         self.keypad_variant = keypad_variant;
@@ -267,17 +266,16 @@ impl<'a, T> Widget for KeyPadView<'a, T>
                 KeyButEnum::image(j) => {
                     let jj = j.wh(k_h.dimension(self.static_style)).border_color(color::BLACK);
                     let jk = item.set(jj, k_h.dimension(self.static_style)[0], ui);
-                    if jk.clone().was_clicked() {
-                        if jk.was_hold() {
-                            let mut keypad_variant = self.keypad_variant;
-                            k_h.process(self.text_edit, KeyPressType::hold, &mut keypad_variant);
-                            self.keypad_variant = keypad_variant;
-                        } else {
-                            let mut keypad_variant = self.keypad_variant;
-                            k_h.process(self.text_edit, KeyPressType::press, &mut keypad_variant);
-                            self.keypad_variant = keypad_variant;
-                        }
+                    if jk.clone().was_hold() {
+                        let mut keypad_variant = self.keypad_variant;
+                        k_h.process(self.text_edit, KeyPressType::hold, &mut keypad_variant);
+                        self.keypad_variant = keypad_variant;
+                    } else if jk.was_clicked() {
+                        let mut keypad_variant = self.keypad_variant;
+                        k_h.process(self.text_edit, KeyPressType::press, &mut keypad_variant);
+                        self.keypad_variant = keypad_variant;
                     }
+
                 }
                 KeyButEnum::blank_flat(_w_multipler, j) => {
                     item.set(j, k_h.dimension(self.static_style)[0] * _w_multipler, ui);
