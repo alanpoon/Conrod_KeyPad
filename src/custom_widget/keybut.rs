@@ -360,7 +360,9 @@ fn interaction_and_times_triggered(button_id: widget::Id,
                     (event::Click { button: input::MouseButton::Left, .. }, Drag::Terminate) => {
                         *drag = Drag::None;
                     }
-                    _ => {}
+                    _ => {
+                        interaction = Interaction::Press;
+                    }
                 }
             }
             event::Widget::Release(release) => {

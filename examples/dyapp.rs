@@ -16,7 +16,7 @@ use conrod::{widget, color, Colorable, Widget, Positionable, Sizeable};
 use conrod::backend::glium::glium::{self, glutin, Surface};
 #[cfg(feature="hotload")]
 use conrod_keypad::dyapplication as application;
-use conrod_keypad::custom_widget::keypad;
+use conrod_keypad::custom_widget::{text_edit, keypad};
 use conrod_keypad::english;
 use std::time::Instant;
 const LIB_PATH: &'static str = "target/debug/libtest_shared.so";
@@ -158,11 +158,13 @@ fn load_image(display: &glium::Display, path: &str) -> glium::texture::Texture2d
 fn set_widgets(ui: &mut conrod::UiCell,
                demo_text_edit: &mut String,
                keypadvariant: &mut keypad::KeyPadVariant,
-               english_tuple: &(Vec<english::KeyButton>, Vec<english::KeyButton>),
+               english_tuple: &(Vec<english::KeyButton>,
+                                Vec<english::KeyButton>,
+                                english::KeyButton),
                keybuttonstyle: application::KeyButtonStyle,
                ids: &mut Ids) {
     widget::Canvas::new().color(color::LIGHT_BLUE).set(ids.master, ui);
-    for edit in widget::TextEdit::new(demo_text_edit)
+    for edit in text_edit::TextEdit::new(demo_text_edit,ids.master,&english_tuple,keybuttonstyle)
             .color(color::WHITE)
             .padded_w_of(ids.master, 20.0)
             .mid_top_of(ids.master)
@@ -172,11 +174,13 @@ fn set_widgets(ui: &mut conrod::UiCell,
             .set(ids.text_edit, ui) {
         *demo_text_edit = edit;
     }
-    let screen_dim = ui.wh_of(ids.master).unwrap();
+    /* let screen_dim = ui.wh_of(ids.master).unwrap();
     let h = keypad::KeyPadView::new(demo_text_edit,
                                     keypadvariant,
                                     &english_tuple.0,
                                     &english_tuple.1,
+                                    &english_tuple.2,
+                                    &cursor,
                                     keybuttonstyle
                                     //app.get_keyboard_styles([screen_dim[0], screen_dim[1] * 0.4])
                                     );
@@ -184,4 +188,5 @@ fn set_widgets(ui: &mut conrod::UiCell,
         .w(screen_dim[0])
         .h(screen_dim[1] * 0.4)
         .set(ids.keyboard, ui);
+        */
 }
