@@ -9,13 +9,9 @@ use conrod::text;
 use conrod::utils;
 use conrod::widget;
 use conrod::cursor;
-use conrod::input::state::mouse::Mouse;
-use conrod::input::state::touch::Touch;
-use conrod::widget::envelope_editor::EnvelopePoint;
 use conrod::graph::Walker;
 use conrod::widget::primitive::text::Wrap;
 use custom_widget::keypad::*;
-use custom_widget::keybut;
 use application;
 /// A widget for displaying and mutating multi-line text, given as a `String`.
 ///

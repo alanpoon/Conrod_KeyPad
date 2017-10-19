@@ -87,14 +87,14 @@ impl KeyButtonTrait for KeyButton {
             }
             &KeyVariant::StringHold(ref s1, ref s2) => {
                 match keypresstype {
-                    KeyPressType::press => {
+                    KeyPressType::Press => {
                         cursor_start_end(cursor,
                                          lineinfo,
                                          te,
                                          Some(s1.clone()),
                                          Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
                     }
-                    KeyPressType::hold => {
+                    KeyPressType::Hold => {
                         cursor_start_end(cursor,
                                          lineinfo,
                                          te,
@@ -131,7 +131,7 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::StringHold(String::from("i"),String::from("8"))),
     KeyButton(KeyVariant::StringHold(String::from("o"),String::from("9"))),
     KeyButton(KeyVariant::StringHold(String::from("p"),String::from("0"))),
-    KeyButton(KeyVariant::Blank(0.5,BlankEnum::flat)), //10
+    KeyButton(KeyVariant::Blank(0.5,BlankEnum::Flat)), //10
     KeyButton(KeyVariant::StringOnly(String::from("a"))),
     KeyButton(KeyVariant::StringOnly(String::from("s"))),
     KeyButton(KeyVariant::StringOnly(String::from("d"))),
@@ -141,8 +141,8 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::StringOnly(String::from("j"))),
     KeyButton(KeyVariant::StringOnly(String::from("k"))),
     KeyButton(KeyVariant::StringOnly(String::from("l"))),
-    KeyButton(KeyVariant::Blank(0.5,BlankEnum::flat)), //20
-    KeyButton(KeyVariant::Blank(0.0,BlankEnum::flat)), //21
+    KeyButton(KeyVariant::Blank(0.5,BlankEnum::Flat)), //20
+    KeyButton(KeyVariant::Blank(0.0,BlankEnum::Flat)), //21
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[0],images[1]])),Box::new(|_,kpv,_,_|{match kpv{
         &mut KeyPadVariant::Letter(1)=>{
             *kpv= KeyPadVariant::Letter(2);
@@ -161,7 +161,7 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[2],images[2]])),Box::new(|te,_,cursor,lineinfo|{
       cursor_start_end(cursor,lineinfo,te,None,Box::new(|cursor_idx,lineinfo|(cursor_idx,cursor_idx.previous(lineinfo.iter().cloned()).unwrap_or(cursor_idx))));
         }))), //backspace
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("?123"),String::from("?123")])),Box::new(|te,kpv,_,_|{*kpv = KeyPadVariant::Num(1);}))),
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("?123"),String::from("?123")])),Box::new(|_,kpv,_,_|{*kpv = KeyPadVariant::Num(1);}))),
     KeyButton(KeyVariant::Spacebar(images[3],String::from(" "))),
     KeyButton(KeyVariant::StringOnly(String::from("."))),
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|te,_,cursor,lineinfo|{
@@ -179,7 +179,7 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::Num(String::from("8"),String::from("["))),
     KeyButton(KeyVariant::Num(String::from("9"),String::from("]"))),
     KeyButton(KeyVariant::Num(String::from("0"),String::from("|"))),
-    KeyButton(KeyVariant::Blank(0.0,BlankEnum::flat)), //10
+    KeyButton(KeyVariant::Blank(0.0,BlankEnum::Flat)), //10
     KeyButton(KeyVariant::Num(String::from("@"),String::from("$"))),
     KeyButton(KeyVariant::Num(String::from("#"),String::from("€"))),
     KeyButton(KeyVariant::Num(String::from("%"),String::from("£"))),
@@ -190,7 +190,7 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::Num(String::from("+"),String::from("^"))),
     KeyButton(KeyVariant::Num(String::from("("),String::from("`"))),
     KeyButton(KeyVariant::Num(String::from(")"),String::from("∘"))),//20
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::StringOnly([String::from("1/3"),String::from("2/3")])),Box::new(|te,kpv,_,_|{
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::StringOnly([String::from("1/3"),String::from("2/3")])),Box::new(|_,kpv,_,_|{
         match kpv{
             &mut KeyPadVariant::Num(1)=>{
                 *kpv = KeyPadVariant::Num(2);
@@ -201,7 +201,7 @@ pub fn populate(image_id: conrod::image::Id,
             _=>{}
         }
     }))), //21
-    KeyButton(KeyVariant::Blank(0.0,BlankEnum::image(images[0]))), //22
+    KeyButton(KeyVariant::Blank(0.0,BlankEnum::Image(images[0]))), //22
     KeyButton(KeyVariant::Num(String::from("?"),String::from("¿"))),
     KeyButton(KeyVariant::Num(String::from("!"),String::from("¡"))),
     KeyButton(KeyVariant::Num(String::from("\""),String::from("\\"))),
@@ -212,7 +212,7 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[2],images[2]])),Box::new(|te,_,cursor,lineinfo|{
       cursor_start_end(cursor,lineinfo,te,None,Box::new(|cursor_idx,lineinfo|(cursor_idx,cursor_idx.previous(lineinfo.iter().cloned()).unwrap_or(cursor_idx))));
         }))), //backspace
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("abc"),String::from("abc")])),Box::new(|te,kpv,_,_|{*kpv=KeyPadVariant::Num(1);}))),
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("abc"),String::from("abc")])),Box::new(|_,kpv,_,_|{*kpv=KeyPadVariant::Num(1);}))),
     KeyButton(KeyVariant::Spacebar(images[3],String::from(" "))),
     KeyButton(KeyVariant::StringOnly(String::from("."))),
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|te,_,cursor,lineinfo|{
@@ -223,7 +223,7 @@ pub fn populate(image_id: conrod::image::Id,
     let closetabbutton =
         KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[5],
                                                                                      images[5]])),
-                                      Box::new(|te, kpv, _, _| { *kpv = KeyPadVariant::None; })));
+                                      Box::new(|_, kpv, _, _| { *kpv = KeyPadVariant::None; })));
     (letter_vec, number_vec, closetabbutton)
 }
 

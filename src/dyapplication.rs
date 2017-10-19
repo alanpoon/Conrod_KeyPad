@@ -22,8 +22,6 @@ impl Application {
                 *last_modified = modified;
                 *self =
                     Application(Library::new(libpath).unwrap_or_else(|error| panic!("{}", error)));
-                let j =
-                    Application(Library::new(libpath).unwrap_or_else(|error| panic!("{}", error)));
             }
         }
     }

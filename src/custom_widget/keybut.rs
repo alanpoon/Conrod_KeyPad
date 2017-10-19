@@ -1,18 +1,17 @@
 //! The `Button` widget and related items.
 
 use conrod::{Color, color, Colorable, FontSize, Borderable, Labelable, Positionable, Sizeable,
-             UiCell, Widget, image, text, Range, event, input};
+             UiCell, Widget, text, event, input};
 use conrod::widget::primitive::image::Image;
 use conrod::position::{self, Align, Rect, Scalar};
 use conrod::widget::envelope_editor::EnvelopePoint;
 use conrod::widget;
-use std;
 use std::time::{Duration, Instant};
 pub enum KeyButEnum<'a> {
-    flat(Button<'a, Flat>),
-    image(Button<'a, widget::Image>),
-    blank_flat(f64, Button<'a, Flat>), //width mutliplier
-    blank_image(f64, Button<'a, widget::Image>),
+    Flat(Button<'a, Flat>),
+    Image(Button<'a, widget::Image>),
+    BlankFlat(f64, Button<'a, Flat>), //width mutliplier
+    BlankImage(f64, Button<'a, widget::Image>),
 }
 
 /// A pressable button widget whose reaction is triggered upon release.
@@ -257,7 +256,7 @@ impl<'a> Widget for Button<'a, Image> {
         // Instantiate the image.
         let widget_image = show;
         let (x, y, w, h) = rect.x_y_w_h();
-        let mut image = widget_image.x_y(x, y)
+        let image = widget_image.x_y(x, y)
             .top_right_with_margins_on(id, h * 0.2, w * 0.2)
             .w_h(w * 0.6, h * 0.6)
             .parent(id)
@@ -337,7 +336,7 @@ fn interaction_and_times_triggered(button_id: widget::Id,
         match widget_event {
             event::Widget::Press(press) => {
                 match press.button {
-                    event::Button::Mouse(input::MouseButton::Left, rel_xy) => {
+                    event::Button::Mouse(input::MouseButton::Left, _) => {
                         let now = Instant::now();
                         match drag {
                             &mut Drag::Selecting(a) => {
