@@ -9,6 +9,9 @@ use conrod::text;
 use conrod::utils;
 use conrod::widget;
 use conrod::cursor;
+use conrod::input::state::mouse::Mouse;
+use conrod::input::state::touch::Touch;
+use conrod::widget::envelope_editor::EnvelopePoint;
 use conrod::graph::Walker;
 use conrod::widget::primitive::text::Wrap;
 use custom_widget::keypad::*;
@@ -844,7 +847,7 @@ impl<'a, T> Widget for TextEdit<'a, T>
             state.update(|state| state.drag = drag);
         }
         if state.keypadvariant != keypadvariant {
-            state.update(|state| state.keypadvariant = keypadvariant);
+            state.update(|state| state.keypadvariant = keypadvariant.clone());
         }
         // Takes the `String` from the `Cow` if the `Cow` is `Owned`.
         fn take_if_owned(text: std::borrow::Cow<str>) -> Option<String> {
@@ -886,7 +889,12 @@ impl<'a, T> Widget for TextEdit<'a, T>
         };
 
         // If this widget is not capturing the keyboard, no need to draw cursor or selection.
-        if ui.global_input().current.widget_capturing_keyboard != Some(id) {
+        let keypadout = if let KeyPadVariant::None = keypadvariant {
+            false
+        } else {
+            true
+        };
+        if (ui.global_input().current.widget_capturing_keyboard != Some(id)) & (!keypadout) {
             return take_if_owned(text);
         }
 

@@ -174,19 +174,5 @@ fn set_widgets(ui: &mut conrod::UiCell,
             .set(ids.text_edit, ui) {
         *demo_text_edit = edit;
     }
-    /* let screen_dim = ui.wh_of(ids.master).unwrap();
-    let h = keypad::KeyPadView::new(demo_text_edit,
-                                    keypadvariant,
-                                    &english_tuple.0,
-                                    &english_tuple.1,
-                                    &english_tuple.2,
-                                    &cursor,
-                                    keybuttonstyle
-                                    //app.get_keyboard_styles([screen_dim[0], screen_dim[1] * 0.4])
-                                    );
-    h.mid_bottom_of(ids.master)
-        .w(screen_dim[0])
-        .h(screen_dim[1] * 0.4)
-        .set(ids.keyboard, ui);
-        */
+
 }

@@ -44,40 +44,67 @@ impl KeyButtonTrait for KeyButton {
                     &mut KeyPadVariant::Letter(2) => {
                         tstring.push_str(s);
                         tstring = tstring.to_uppercase();
-                        te.to_mut().push_str(&tstring);
+                        cursor_start_end(cursor,
+                                         lineinfo,
+                                         te,
+                                         Some(tstring),
+                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
                     }
                     _ => {
-                        te.to_mut().push_str(s);
+                        cursor_start_end(cursor,
+                                         lineinfo,
+                                         te,
+                                         Some(s.clone()),
+                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
                     }
                 }
             }
             &KeyVariant::Num(ref s1, ref s2) => {
                 match keypadvariant {
                     &mut KeyPadVariant::Num(1) => {
-                        te.to_mut().push_str(s1);
+                        cursor_start_end(cursor,
+                                         lineinfo,
+                                         te,
+                                         Some(s1.clone()),
+                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
                     }
                     &mut KeyPadVariant::Num(2) => {
-                        te.to_mut().push_str(s2);
+                        cursor_start_end(cursor,
+                                         lineinfo,
+                                         te,
+                                         Some(s2.clone()),
+                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
                     }
                     _ => {}
                 }
             }
             &KeyVariant::Spacebar(_, ref _l) => {
-                te.to_mut().push_str(_l);
+                cursor_start_end(cursor,
+                                 lineinfo,
+                                 te,
+                                 Some(_l.clone()),
+                                 Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
             }
             &KeyVariant::StringHold(ref s1, ref s2) => {
                 match keypresstype {
                     KeyPressType::press => {
-                        te.to_mut().push_str(s1);
+                        cursor_start_end(cursor,
+                                         lineinfo,
+                                         te,
+                                         Some(s1.clone()),
+                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
                     }
                     KeyPressType::hold => {
-                        te.to_mut().push_str(s2);
+                        cursor_start_end(cursor,
+                                         lineinfo,
+                                         te,
+                                         Some(s2.clone()),
+                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
                     }
                 }
             }
             &KeyVariant::Blank(_, _) => {}
             &KeyVariant::Closure(_, ref c) => {
-                println!("clicked");
                 (c)(te, keypadvariant, cursor, lineinfo);
             }
         }
@@ -205,6 +232,7 @@ fn cursor_start_end(cursor: &mut Cursor,
                     te: &mut std::borrow::Cow<str>,
                     s: Option<String>,
                     cursor_closure: Box<Fn(Index, Vec<Info>) -> (Index, Index)>) {
+
     let (start, end) = match cursor.clone() {
         Cursor::Idx(cursor_idx) => (cursor_closure)(cursor_idx, lineinfo.clone()),
         Cursor::Selection { start, end } => (start, end),
@@ -214,11 +242,17 @@ fn cursor_start_end(cursor: &mut Cursor,
         (text::glyph::index_after_cursor(line_infos.clone(), start),
          text::glyph::index_after_cursor(line_infos, end))
     };
+
+
     if let (Some(start_idx), Some(end_idx)) = (start_idx, end_idx) {
         let (start_idx, end_idx) = (std::cmp::min(start_idx, end_idx),
                                     std::cmp::max(start_idx, end_idx));
-
-        let new_cursor_char_idx = if start_idx > 0 { start_idx } else { 0 };
+        let new_cursor_char_idx = if let Some(ref _s) = s {
+            let string_char_count = _s.clone().chars().count();
+            start_idx + string_char_count
+        } else {
+            if start_idx > 0 { start_idx } else { 0 }
+        };
         let new_cursor_idx = {
             let line_infos = lineinfo.iter().cloned();
             index_before_char(line_infos, new_cursor_char_idx).expect("char index was out of range")
