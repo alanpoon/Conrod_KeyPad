@@ -1,34 +1,31 @@
 //! A widget for displaying and mutating multi-line text, given as a `String`.
 
-use conrod::{Color, Colorable, FontSize, Positionable, Sizeable, Widget, Ui};
-use conrod::event;
-use conrod::input;
-use conrod::position::{Align, Dimension, Point, Range, Rect, Scalar};
+use {Color, Colorable, FontSize, Positionable, Sizeable, Widget, Ui};
+use event;
+use input;
+use position::{Align, Dimension, Point, Range, Rect, Scalar};
 use std;
-use conrod::text;
-use conrod::utils;
-use conrod::widget;
-use conrod::cursor;
-use conrod::graph::Walker;
-use conrod::widget::primitive::text::Wrap;
-use custom_widget::keypad::*;
-use conrod::UiCell;
+use text;
+use utils;
+use widget;
+use cursor;
+use widget::primitive::text::Wrap;
+
+
 /// A widget for displaying and mutating multi-line text, given as a `String`.
 ///
 /// By default the text is wrapped via the first whitespace before the line exceeds the
 /// `TextEdit`'s width, however a user may change this using the `.wrap_by_character` method.
-#[derive(WidgetCommon)]
-pub struct TextEdit<'a, T: KeyButtonTrait + 'a> {
+#[derive(WidgetCommon_)]
+pub struct TextEdit<'a> {
     #[conrod(common_builder)]
     common: widget::CommonBuilder,
     text: &'a str,
     style: Style,
-    master_id: widget::Id,
-    meta_tuple: &'a (Vec<T>, Vec<T>, T),
 }
 
 /// Unique graphical styling for the TextEdit.
-#[derive(Copy, Clone, Debug, Default, PartialEq, WidgetStyle)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, WidgetStyle_)]
 pub struct Style {
     /// The color of the text (this includes cursor and selection color).
     #[conrod(default = "theme.shape_color")]
@@ -54,57 +51,23 @@ pub struct Style {
     /// The font used for the `Text`.
     #[conrod(default = "theme.font_id")]
     pub font_id: Option<Option<text::font::Id>>,
-    #[conrod(default ="[0.1,0.25]")]
-    pub letter_dim: Option<[f64; 2]>,
-    #[conrod(default="[0.1,0.25]")]
-    pub num_dim: Option<[f64; 2]>,
-    #[conrod(default="[0.15,0.25]")]
-    pub edge_row3_dim: Option<[f64; 2]>,
-    #[conrod(default="[0.175,0.25]")]
-    pub edge_row4_dim: Option<[f64; 2]>,
-    #[conrod(default="[0.55,0.25]")]
-    pub spacebar_dim: Option<[f64; 2]>,
 }
-impl Style {
-    pub fn normalize(&self, screen: [f64; 2], ui: &UiCell) -> Style {
-        let mut k = self.clone();
-        let (letter_dim, num_dim, edge_row3_dim, edge_row4_dim, spacebar_dim) =
-            (self.letter_dim(ui.theme()),
-             self.num_dim(ui.theme()),
-             self.edge_row3_dim(ui.theme()),
-             self.edge_row4_dim(ui.theme()),
-             self.spacebar_dim(ui.theme()));
-        k.letter_dim = Some([letter_dim[0] * screen[0], letter_dim[1] * screen[1]]);
-        k.num_dim = Some([num_dim[0] * screen[0], num_dim[1] * screen[1]]);
-        k.edge_row3_dim = Some([edge_row3_dim[0] * screen[0], edge_row3_dim[1] * screen[1]]);
-        k.edge_row4_dim = Some([edge_row4_dim[0] * screen[0], edge_row4_dim[1] * screen[1]]);
-        k.spacebar_dim = Some([spacebar_dim[0] * screen[0], spacebar_dim[1] * screen[1]]);
-
-        k
-    }
-}
-
 
 widget_ids! {
-    #[derive(Clone)]
-   pub struct Ids {
+    struct Ids {
         selected_rectangles[],
         text,
         cursor,
-        keyboard_canvas,
-        keyboard,
-        close_tab
     }
 }
 
 /// The State of the TextEdit widget that will be cached within the Ui.
 pub struct State {
-    pub cursor: Cursor,
+    cursor: Cursor,
     /// Track whether some sort of dragging is currently occurring.
     drag: Option<Drag>,
     /// Information about each line of text.
     line_infos: Vec<text::line::Info>,
-    keypadvariant: KeyPadVariant,
     ids: Ids,
 }
 
@@ -114,7 +77,7 @@ pub enum Drag {
     /// The drag is currently selecting a range of text.
     Selecting,
     /// The drag is moving a selection of text.
-    #[allow(dead_code)]
+    #[allow(dead_code)] // TODO: Implement this.
     MoveSelection,
 }
 
@@ -136,17 +99,14 @@ pub enum Cursor {
 }
 
 
-impl<'a, T> TextEdit<'a, T>
-    where T: KeyButtonTrait + 'a
-{
+impl<'a> TextEdit<'a> {
+
     /// Construct a TextEdit widget.
-    pub fn new(text: &'a str, master_id: widget::Id, meta_tuple: &'a (Vec<T>, Vec<T>, T)) -> Self {
+    pub fn new(text: &'a str) -> Self {
         TextEdit {
             common: widget::CommonBuilder::default(),
             style: Style::default(),
             text: text,
-            master_id: master_id,
-            meta_tuple: meta_tuple,
         }
     }
 
@@ -214,17 +174,11 @@ impl<'a, T> TextEdit<'a, T>
         pub line_wrap { style.line_wrap = Some(Wrap) }
         pub line_spacing { style.line_spacing = Some(Scalar) }
         pub restrict_to_height { style.restrict_to_height = Some(bool) }
-        pub letter_dim{style.letter_dim = Some([f64;2])}
-        pub num_dim{style.num_dim = Some([f64;2])}
-        pub edge_row3_dim{style.edge_row3_dim = Some([f64;2])}
-        pub edge_row4_dim{style.edge_row4_dim = Some([f64;2])}
-        pub spacebar_dim{style.spacebar_dim = Some([f64;2])}
     }
+
 }
 
-impl<'a, T> Widget for TextEdit<'a, T>
-    where T: KeyButtonTrait + 'a
-{
+impl<'a> Widget for TextEdit<'a> {
     type State = State;
     type Style = Style;
     // TODO: We should create a more specific `Event` type that:
@@ -238,7 +192,6 @@ impl<'a, T> Widget for TextEdit<'a, T>
             cursor: Cursor::Idx(text::cursor::Index { line: 0, char: 0 }),
             drag: None,
             line_infos: Vec::new(),
-            keypadvariant: KeyPadVariant::None,
             ids: Ids::new(id_gen),
         }
     }
@@ -256,10 +209,10 @@ impl<'a, T> Widget for TextEdit<'a, T>
 
         // Otherwise the height is unrestricted, and we should infer the height as the total height
         // of the fully styled, wrapped text.
-        let font = match self.style
-                  .font_id(&ui.theme)
-                  .or(ui.fonts.ids().next())
-                  .and_then(|id| ui.fonts.get(id)) {
+        let font = match self.style.font_id(&ui.theme)
+            .or(ui.fonts.ids().next())
+            .and_then(|id| ui.fonts.get(id))
+        {
             Some(font) => font,
             None => return Dimension::Absolute(0.0),
         };
@@ -268,16 +221,16 @@ impl<'a, T> Widget for TextEdit<'a, T>
         let font_size = self.style.font_size(&ui.theme);
         let num_lines = match self.get_w(ui) {
             None => text.lines().count(),
-            Some(max_w) => {
-                match self.style.line_wrap(&ui.theme) {
-                    Wrap::Character => {
-                        text::line::infos(text, font, font_size).wrap_by_character(max_w).count()
-                    }
-                    Wrap::Whitespace => {
-                        text::line::infos(text, font, font_size).wrap_by_whitespace(max_w).count()
-                    }
-                }
-            }
+            Some(max_w) => match self.style.line_wrap(&ui.theme) {
+                Wrap::Character =>
+                    text::line::infos(text, font, font_size)
+                        .wrap_by_character(max_w)
+                        .count(),
+                Wrap::Whitespace =>
+                    text::line::infos(text, font, font_size)
+                        .wrap_by_whitespace(max_w)
+                        .count(),
+            },
         };
         let line_spacing = self.style.line_spacing(&ui.theme);
         let height = text::height(std::cmp::max(num_lines, 1), font_size, line_spacing);
@@ -286,18 +239,17 @@ impl<'a, T> Widget for TextEdit<'a, T>
 
     /// Update the state of the TextEdit.
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        let widget::UpdateArgs { id, state, rect, style, mut ui, .. } = args;
+        let widget::UpdateArgs { id, state, rect, style, ui, .. } = args;
         let TextEdit { text, .. } = self;
         let mut text = std::borrow::Cow::Borrowed(text);
 
         // Retrieve the `font_id`, as long as a valid `Font` for it still exists.
         //
         // If we've no font to use for text logic, bail out without updating.
-        let font_id = match style.font_id(&ui.theme).or(ui.fonts.ids().next()).and_then(|id| {
-                                                                              ui.fonts
-                                                                                  .get(id)
-                                                                                  .map(|_| id)
-                                                                          }) {
+        let font_id = match style.font_id(&ui.theme)
+            .or(ui.fonts.ids().next())
+            .and_then(|id| ui.fonts.get(id).map(|_| id))
+        {
             Some(font_id) => font_id,
             None => return None,
         };
@@ -316,8 +268,8 @@ impl<'a, T> Widget for TextEdit<'a, T>
                           font: &'a text::Font,
                           font_size: FontSize,
                           line_wrap: Wrap,
-                          max_width: Scalar)
-                          -> LineInfos<'a> {
+                          max_width: Scalar) -> LineInfos<'a>
+        {
             let infos = text::line::infos(text, font, font_size);
             match line_wrap {
                 Wrap::Whitespace => infos.wrap_by_whitespace(max_width),
@@ -350,18 +302,15 @@ impl<'a, T> Widget for TextEdit<'a, T>
                     let new_cursor = Cursor::Idx(new_index);
                     state.update(|state| state.cursor = new_cursor);
                 }
-            }
+            },
             Cursor::Selection { start, end } => {
                 let new_start = start.clamp_to_lines(state.line_infos.iter().cloned());
                 let new_end = end.clamp_to_lines(state.line_infos.iter().cloned());
                 if start != new_start || end != new_end {
-                    let new_cursor = Cursor::Selection {
-                        start: new_start,
-                        end: new_end,
-                    };
+                    let new_cursor = Cursor::Selection { start: new_start, end: new_end };
                     state.update(|state| state.cursor = new_cursor);
                 }
-            }
+            },
         }
 
         // Find the position of the cursor at the given index over the given text.
@@ -369,15 +318,11 @@ impl<'a, T> Widget for TextEdit<'a, T>
                             text: &str,
                             line_infos: &[text::line::Info],
                             font: &text::Font|
-         -> Option<(Scalar, Range)> {
-            let xys_per_line = text::cursor::xys_per_line_from_text(text,
-                                                                    line_infos,
-                                                                    font,
-                                                                    font_size,
-                                                                    justify,
-                                                                    y_align,
-                                                                    line_spacing,
-                                                                    rect);
+            -> Option<(Scalar, Range)>
+        {
+            let xys_per_line = text::cursor::xys_per_line_from_text(text, line_infos, font,
+                                                                    font_size, justify, y_align,
+                                                                    line_spacing, rect);
             text::cursor::xy_at(xys_per_line, cursor_idx)
         };
 
@@ -388,15 +333,11 @@ impl<'a, T> Widget for TextEdit<'a, T>
                                            text: &str,
                                            line_infos: &[text::line::Info],
                                            font: &text::Font|
-         -> Option<(text::cursor::Index, Point)> {
-            let xys_per_line = text::cursor::xys_per_line_from_text(text,
-                                                                    line_infos,
-                                                                    font,
-                                                                    font_size,
-                                                                    justify,
-                                                                    y_align,
-                                                                    line_spacing,
-                                                                    rect);
+            -> Option<(text::cursor::Index, Point)>
+        {
+            let xys_per_line = text::cursor::xys_per_line_from_text(text, line_infos, font,
+                                                                    font_size, justify, y_align,
+                                                                    line_spacing, rect);
             text::cursor::closest_cursor_index_and_xy(xy, xys_per_line)
         };
 
@@ -405,22 +346,14 @@ impl<'a, T> Widget for TextEdit<'a, T>
                                             line_idx: usize,
                                             text: &str,
                                             line_infos: &[text::line::Info],
-                                            font: &text::Font|
-         -> Option<text::cursor::Index> {
-            let mut xys_per_line = text::cursor::xys_per_line_from_text(text,
-                                                                        line_infos,
-                                                                        font,
-                                                                        font_size,
-                                                                        justify,
-                                                                        y_align,
-                                                                        line_spacing,
-                                                                        rect);
-            xys_per_line.nth(line_idx).and_then(|(line_xs, _)| {
-                let (char_idx, _) = text::cursor::closest_cursor_index_on_line(x_pos, line_xs);
-                Some(text::cursor::Index {
-                         line: line_idx,
-                         char: char_idx,
-                     })
+                                            font: &text::Font| -> Option<text::cursor::Index>
+        {
+            let mut xys_per_line = text::cursor::xys_per_line_from_text(text, line_infos, font,
+                                                                        font_size, justify, y_align,
+                                                                        line_spacing, rect);
+            xys_per_line.nth(line_idx).and_then(|(line_xs,_)| {
+                let (char_idx,_) = text::cursor::closest_cursor_index_on_line(x_pos,line_xs);
+                Some(text::cursor::Index { line: line_idx, char: char_idx })
             })
         };
 
@@ -437,29 +370,29 @@ impl<'a, T> Widget for TextEdit<'a, T>
                            text: &str,
                            infos: &[text::line::Info],
                            font: &text::Font|
-         -> Option<(String, Cursor, std::vec::Vec<text::line::Info>)> {
+            -> Option<(String, Cursor, std::vec::Vec<text::line::Info>)>
+        {
             let string_char_count = string.chars().count();
 
             // Construct the new text with the new string inserted at the cursor.
             let (new_text, new_cursor_char_idx): (String, usize) = {
                 let (cursor_start, cursor_end) = match cursor {
                     Cursor::Idx(idx) => (idx, idx),
-                    Cursor::Selection { start, end } => {
-                        (std::cmp::min(start, end), std::cmp::max(start, end))
-                    }
+                    Cursor::Selection { start, end } =>
+                        (std::cmp::min(start, end), std::cmp::max(start, end)),
                 };
 
                 let line_infos = infos.iter().cloned();
 
                 let (start_idx, end_idx) =
                     (text::glyph::index_after_cursor(line_infos.clone(), cursor_start)
-                         .unwrap_or(0),
-                     text::glyph::index_after_cursor(line_infos.clone(), cursor_end).unwrap_or(0));
+                        .unwrap_or(0),
+                     text::glyph::index_after_cursor(line_infos.clone(), cursor_end)
+                        .unwrap_or(0));
 
                 let new_cursor_char_idx = start_idx + string_char_count;
 
-                let new_text = text.chars()
-                    .take(start_idx)
+                let new_text = text.chars().take(start_idx)
                     .chain(string.chars())
                     .chain(text.chars().skip(end_idx))
                     .collect();
@@ -481,9 +414,9 @@ impl<'a, T> Widget for TextEdit<'a, T>
                     let line_infos = new_line_infos.iter().cloned();
                     text::cursor::index_before_char(line_infos, new_cursor_char_idx)
                         .unwrap_or(text::cursor::Index {
-                                       line: 0,
-                                       char: string_char_count,
-                                   })
+                            line: 0,
+                            char: string_char_count,
+                        })
                 };
 
                 Some((new_text, Cursor::Idx(new_cursor_idx), new_line_infos))
@@ -502,115 +435,102 @@ impl<'a, T> Widget for TextEdit<'a, T>
         'events: for widget_event in ui.widget_input(id).events() {
             match widget_event {
 
-                event::Widget::Press(press) => {
-                    match press.button {
+                event::Widget::Press(press) => match press.button {
 
-                        // If the left mouse button was pressed, place a `Cursor` with the starting
-                        // index at the mouse position.
-                        event::Button::Mouse(input::MouseButton::Left, rel_xy) => {
-                            let abs_xy = utils::vec2_add(rel_xy, rect.xy());
-                            let infos = &state.line_infos.clone();
-                            let font = ui.fonts.get(font_id).unwrap();
-                            let closest = closest_cursor_index_and_xy(abs_xy, &text, infos, font);
-                            if let Some((closest_cursor, _)) = closest {
-                                cursor = Cursor::Idx(closest_cursor);
-                            }
-                            if let &KeyPadVariant::None = &state.keypadvariant {
-                                //  keypadvariant=KeyPadVariant::Letter(1);
-                                state.update(|state| {
-                                                 state.keypadvariant = KeyPadVariant::Letter(1);
-                                             })
-                            }
-                            // TODO: Differentiate between Selecting and MoveSelection.
-                            drag = Some(Drag::Selecting);
+                    // If the left mouse button was pressed, place a `Cursor` with the starting
+                    // index at the mouse position.
+                    event::Button::Mouse(input::MouseButton::Left, rel_xy) => {
+                        let abs_xy = utils::vec2_add(rel_xy, rect.xy());
+                        let infos = &state.line_infos;
+                        let font = ui.fonts.get(font_id).unwrap();
+                        let closest = closest_cursor_index_and_xy(abs_xy, &text, infos, font);
+                        if let Some((closest_cursor, _)) = closest {
+                            cursor = Cursor::Idx(closest_cursor);
                         }
 
-                        // Check for control keys.
-                        event::Button::Keyboard(key) => {
-                            match key {
+                        // TODO: Differentiate between Selecting and MoveSelection.
+                        drag = Some(Drag::Selecting);
+                    }
 
-                                // If `Cursor::Idx`, remove the `char` behind the cursor.
-                                // If `Cursor::Selection`, remove the selected text.
-                                input::Key::Backspace | input::Key::Delete => {
-                                    let delete_word = press.modifiers
-                                        .contains(input::keyboard::ModifierKey::CTRL);
+                    // Check for control keys.
+                    event::Button::Keyboard(key) => match key {
 
-                                    // Calculate start/end indices of text to remove
-                                    let (start, end) = match cursor {
-                                        Cursor::Idx(cursor_idx) => {
-                                            let line_infos = state.line_infos.iter().cloned();
+                        // If `Cursor::Idx`, remove the `char` behind the cursor.
+                        // If `Cursor::Selection`, remove the selected text.
+                        input::Key::Backspace | input::Key::Delete => {
+                            let delete_word = press.modifiers.contains(input::keyboard::ModifierKey::CTRL);
 
-                                            let end = match (key, delete_word) {
-                                                    (input::Key::Backspace, false) => {
-                                                        cursor_idx.previous(line_infos)
-                                                    }
-                                                    (input::Key::Backspace, true) => {
-                                                        cursor_idx.previous_word_start(&text,
-                                                                                       line_infos)
-                                                    }
-                                                    (input::Key::Delete, false) => {
-                                                        cursor_idx.next(line_infos)
-                                                    }
-                                                    (input::Key::Delete, true) => {
-                                                        cursor_idx.next_word_end(&text, line_infos)
-                                                    }
-                                                    _ => unreachable!(),
-                                                }
-                                                .unwrap_or(cursor_idx);
+                            // Calculate start/end indices of text to remove
+                            let (start, end) = match cursor {
+                                Cursor::Idx(cursor_idx) => {
+                                    let line_infos = state.line_infos.iter().cloned();
 
-                                            (cursor_idx, end)
+                                    let end = match (key, delete_word) {
+                                        (input::Key::Backspace, false) => {
+                                            cursor_idx.previous(line_infos)
                                         }
-                                        Cursor::Selection { start, end } => (start, end),
-                                    };
+                                        (input::Key::Backspace, true) => {
+                                            cursor_idx.previous_word_start(&text, line_infos)
+                                        }
+                                        (input::Key::Delete, false) => {
+                                            cursor_idx.next(line_infos)
+                                        }
+                                        (input::Key::Delete, true) => {
+                                            cursor_idx.next_word_end(&text, line_infos)
+                                        }
+                                        _ => unreachable!(),
+                                    }.unwrap_or(cursor_idx);
 
-                                    let (start_idx, end_idx) = {
-                                        let line_infos = state.line_infos.iter().cloned();
-                                        (text::glyph::index_after_cursor(line_infos.clone(), start),
-                                         text::glyph::index_after_cursor(line_infos, end))
-                                    };
-
-                                    if let (Some(start_idx), Some(end_idx)) = (start_idx, end_idx) {
-                                        let (start_idx, end_idx) =
-                                            (std::cmp::min(start_idx, end_idx),
-                                             std::cmp::max(start_idx, end_idx));
-
-                                        let new_cursor_char_idx =
-                                            if start_idx > 0 { start_idx } else { 0 };
-                                        let new_cursor_idx = {
-                                            let line_infos = state.line_infos.iter().cloned();
-                                            text::cursor::index_before_char(line_infos,
-                                                                            new_cursor_char_idx)
-                                                    .expect("char index was out of range")
-                                        };
-                                        cursor = Cursor::Idx(new_cursor_idx);
-                                        *text.to_mut() = text.chars()
-                                            .take(start_idx)
-                                            .chain(text.chars().skip(end_idx))
-                                            .collect();
-                                        state.update(|state| {
-                                            let font = ui.fonts.get(font_id).unwrap();
-                                            let w = rect.w();
-                                            state.line_infos =
-                                                line_infos(&text, font, font_size, line_wrap, w)
-                                                    .collect();
-                                        });
-                                    }
+                                    (cursor_idx, end)
                                 }
+                                Cursor::Selection { start, end } => (start, end),
+                            };
 
-                                input::Key::Left | input::Key::Right | input::Key::Up |
-                                input::Key::Down => {
+                            let (start_idx, end_idx) = {
+                                let line_infos = state.line_infos.iter().cloned();
+                                (text::glyph::index_after_cursor(line_infos.clone(), start),
+                                 text::glyph::index_after_cursor(line_infos, end))
+                            };
+
+                            if let (Some(start_idx), Some(end_idx)) = (start_idx, end_idx) {
+                                let (start_idx, end_idx) = (std::cmp::min(start_idx, end_idx),
+                                                            std::cmp::max(start_idx, end_idx));
+
+                                let new_cursor_char_idx =
+                                    if start_idx > 0 { start_idx } else { 0 };
+                                let new_cursor_idx = {
+                                    let line_infos = state.line_infos.iter().cloned();
+                                    text::cursor::index_before_char(line_infos,
+                                                                    new_cursor_char_idx)
+                                        .expect("char index was out of range")
+                                };
+                                cursor = Cursor::Idx(new_cursor_idx);
+                                *text.to_mut() = text.chars().take(start_idx)
+                                    .chain(text.chars().skip(end_idx))
+                                    .collect();
+                                state.update(|state| {
                                     let font = ui.fonts.get(font_id).unwrap();
-                                    let move_word = press.modifiers.contains(input::keyboard::ModifierKey::CTRL);
-                                    let select = press.modifiers.contains(input::keyboard::ModifierKey::SHIFT);
+                                    let w = rect.w();
+                                    state.line_infos =
+                                        line_infos(&text, font, font_size, line_wrap, w)
+                                            .collect();
+                                });
+                            }
+                        },
 
-                                    let (old_selection_start, cursor_idx) = match cursor {
-                                        Cursor::Idx(idx) => (idx, idx),
-                                        Cursor::Selection { start, end } => (start, end),
-                                    };
+                        input::Key::Left | input::Key::Right | input::Key::Up | input::Key::Down => {
+                            let font = ui.fonts.get(font_id).unwrap();
+                            let move_word = press.modifiers.contains(input::keyboard::ModifierKey::CTRL);
+                            let select = press.modifiers.contains(input::keyboard::ModifierKey::SHIFT);
 
-                                    let new_cursor_idx = {
-                                        let line_infos = state.line_infos.iter().cloned();
-                                        match (key, move_word) {
+                            let (old_selection_start, cursor_idx) = match cursor {
+                                Cursor::Idx(idx) => (idx, idx),
+                                Cursor::Selection { start, end } => (start, end),
+                            };
+
+                            let new_cursor_idx = {
+                                let line_infos = state.line_infos.iter().cloned();
+                                match (key, move_word) {
                                     (input::Key::Left, true) => cursor_idx
                                         .previous_word_start(&text, line_infos),
                                     (input::Key::Right, true) => cursor_idx
@@ -632,39 +552,36 @@ impl<'a, T> Widget for TextEdit<'a, T>
                                             closest_cursor_index_on_line(x_pos, next_line, &text, &state.line_infos, font)
                                         })
                                 }.unwrap_or(cursor_idx)
-                                    };
+                            };
 
-                                    if select {
-                                        // Expand the selection (or create a new one)
-                                        cursor = Cursor::Selection {
-                                            start: old_selection_start,
-                                            end: new_cursor_idx,
-                                        };
-                                    } else {
-                                        match cursor {
-                                            Cursor::Idx(_) => {
-                                                cursor = Cursor::Idx(new_cursor_idx);
-                                            }
-                                            Cursor::Selection { start, end } => {
-                                                // Move the cursor to the start/end of the current selection.
-                                                let new_cursor_idx = {
-                                                    let cursor_idx = match key {
-                                                        input::Key::Left | input::Key::Up => {
-                                                            std::cmp::min(start, end)
-                                                        }
-                                                        input::Key::Right | input::Key::Down => {
-                                                            std::cmp::max(start, end)
-                                                        }
-                                                        _ => unreachable!(),
-                                                    };
+                            if select {
+                                // Expand the selection (or create a new one)
+                                cursor = Cursor::Selection {
+                                    start: old_selection_start,
+                                    end: new_cursor_idx,
+                                };
+                            } else {
+                                match cursor {
+                                    Cursor::Idx(_) => {
+                                        cursor = Cursor::Idx(new_cursor_idx);
+                                    },
+                                    Cursor::Selection { start, end } => {
+                                        // Move the cursor to the start/end of the current selection.
+                                        let new_cursor_idx = {
+                                            let cursor_idx = match key {
+                                                input::Key::Left | input::Key::Up =>
+                                                    std::cmp::min(start, end),
+                                                input::Key::Right | input::Key::Down =>
+                                                    std::cmp::max(start, end),
+                                                _ => unreachable!(),
+                                            };
 
-                                                    if !move_word {
-                                                        cursor_idx
-                                                    } else {
-                                                        // Move by word from the beginning or end of selection
-                                                        let line_infos =
-                                                            state.line_infos.iter().cloned();
-                                                        match key {
+                                            if !move_word {
+                                                cursor_idx
+                                            } else {
+                                                // Move by word from the beginning or end of selection
+                                                let line_infos = state.line_infos.iter().cloned();
+                                                match key {
                                                     input::Key::Left | input::Key::Up => {
                                                         cursor_idx.previous_word_start(&text, line_infos)
                                                     },
@@ -673,120 +590,98 @@ impl<'a, T> Widget for TextEdit<'a, T>
                                                     }
                                                     _ => unreachable!(),
                                                 }.unwrap_or(cursor_idx)
-                                                    }
-                                                };
-                                                cursor = Cursor::Idx(new_cursor_idx);
                                             }
-                                        }
-                                    }
-                                }
-
-                                input::Key::A => {
-                                    // Select all text on Ctrl+a.
-                                    if press.modifiers.contains(input::keyboard::ModifierKey::CTRL) {
-                                        let start = text::cursor::Index { line: 0, char: 0 };
-                                        let end = {
-                                            let line_infos = state.line_infos.iter().cloned();
-                                            text::cursor::index_before_char(line_infos,
-                                                                            text.chars().count())
-                                                    .expect("char index was out of range")
-                                        };
-                                        cursor = Cursor::Selection {
-                                            start: start,
-                                            end: end,
-                                        };
-                                    }
-                                }
-
-                                input::Key::E => {
-                                    // move cursor to end.
-                                    if press.modifiers.contains(input::keyboard::ModifierKey::CTRL) {
-                                        let mut line_infos = state.line_infos.iter().cloned();
-                                        let line = line_infos.len() - 1;
-                                        match line_infos.nth(line) {
-                                            Some(line_info) => {
-                                                let char = line_info.end_char() -
-                                                           line_info.start_char;
-                                                let new_cursor_idx = text::cursor::Index {
-                                                    line: line,
-                                                    char: char,
-                                                };
-                                                cursor = Cursor::Idx(new_cursor_idx);
-                                            }
-                                            _ => (),
-                                        }
-                                    }
-                                }
-
-                                input::Key::End => {
-                                    // move cursor to end.
-                                    let mut line_infos = state.line_infos.iter().cloned();
-                                    let line = match cursor {
-                                        Cursor::Idx(idx) => idx.line,
-                                        Cursor::Selection { end, .. } => end.line, // use last line of selection
-                                    };
-                                    if let Some(line_info) = line_infos.nth(line) {
-                                        let char = line_info.end_char() - line_info.start_char;
-                                        let new_cursor_idx = text::cursor::Index {
-                                            line: line,
-                                            char: char,
                                         };
                                         cursor = Cursor::Idx(new_cursor_idx);
-                                    }
+                                    },
                                 }
-
-                                input::Key::Home => {
-                                    // move cursor to beginning.
-                                    let mut line_infos = state.line_infos.iter().cloned();
-                                    let line = match cursor {
-                                        Cursor::Idx(idx) => idx.line,
-                                        Cursor::Selection { start, .. } => start.line, // use first line of selection
-                                    };
-                                    if line_infos.nth(line).is_some() {
-                                        let char = 0;
-                                        let new_cursor_idx = text::cursor::Index {
-                                            line: line,
-                                            char: char,
-                                        };
-                                        cursor = Cursor::Idx(new_cursor_idx);
-                                    }
-                                }
-
-                                input::Key::Return => {
-                                    let font = ui.fonts.get(font_id).unwrap();
-                                    match insert_text("\n",
-                                                      cursor,
-                                                      &text,
-                                                      &state.line_infos,
-                                                      font) {
-                                        Some((new_text, new_cursor, new_line_infos)) => {
-                                            *text.to_mut() = new_text;
-                                            cursor = new_cursor;
-                                            state.update(|state| state.line_infos = new_line_infos);
-                                        }
-                                        _ => (),
-                                    }
-                                }
-
-                                _ => (),
                             }
-                        }
+                        },
+
+                        input::Key::A => {
+                            // Select all text on Ctrl+a.
+                            if press.modifiers.contains(input::keyboard::ModifierKey::CTRL) {
+                                let start = text::cursor::Index { line: 0, char: 0 };
+                                let end = {
+                                    let line_infos = state.line_infos.iter().cloned();
+                                    text::cursor::index_before_char(line_infos, text.chars().count())
+                                        .expect("char index was out of range")
+                                };
+                                cursor = Cursor::Selection { start: start, end: end };
+                            }
+                        },
+
+                        input::Key::E => {
+                            // move cursor to end.
+                            if press.modifiers.contains(input::keyboard::ModifierKey::CTRL) {
+                                let mut line_infos = state.line_infos.iter().cloned();
+                                let line = line_infos.len() - 1;
+                                match line_infos.nth(line) {
+                                    Some(line_info) => {
+                                        let char = line_info.end_char() - line_info.start_char;
+                                        let new_cursor_idx = text::cursor::Index { line: line, char: char };
+                                        cursor = Cursor::Idx(new_cursor_idx);
+                                    },
+                                    _ => (),
+                                }
+                            }
+                        },
+
+                        input::Key::End => { // move cursor to end.
+                            let mut line_infos = state.line_infos.iter().cloned();
+                            let line = match cursor {
+                                Cursor::Idx(idx) => idx.line,
+                                Cursor::Selection {end, ..} => end.line, // use last line of selection
+                            };
+                            if let Some(line_info) = line_infos.nth(line) {
+                                let char = line_info.end_char() - line_info.start_char;
+                                let new_cursor_idx = text::cursor::Index { line: line, char: char };
+                                cursor = Cursor::Idx(new_cursor_idx);
+                            }
+                        },
+
+                        input::Key::Home => { // move cursor to beginning.
+                            let mut line_infos = state.line_infos.iter().cloned();
+                            let line = match cursor {
+                                Cursor::Idx(idx) => idx.line,
+                                Cursor::Selection {start, ..} => start.line, // use first line of selection
+                            };
+                            if line_infos.nth(line).is_some() {
+                                let char = 0;
+                                let new_cursor_idx = text::cursor::Index { line: line, char: char };
+                                cursor = Cursor::Idx(new_cursor_idx);
+                            }
+                        },
+
+                        input::Key::Return => {
+                            let font = ui.fonts.get(font_id).unwrap();
+                            match insert_text("\n", cursor, &text, &state.line_infos, font) {
+                                Some((new_text, new_cursor, new_line_infos)) => {
+                                    *text.to_mut() = new_text;
+                                    cursor = new_cursor;
+                                    state.update(|state| state.line_infos = new_line_infos);
+                                }, _ => ()
+                            }
+                        },
 
                         _ => (),
+                    },
 
-                    }
-                }
+                    _ => (),
+
+                },
 
                 event::Widget::Release(release) => {
                     // Release drag.
                     if let event::Button::Mouse(input::MouseButton::Left, _) = release.button {
                         drag = None;
                     }
-                }
+                },
 
                 event::Widget::Text(event::Text { string, modifiers }) => {
-                    if modifiers.contains(input::keyboard::ModifierKey::CTRL) || string.chars().count() == 0 ||
-                       string.chars().next().is_none() {
+                    if modifiers.contains(input::keyboard::ModifierKey::CTRL)
+                    || string.chars().count() == 0
+                    || string.chars().next().is_none() {
                         continue 'events;
                     }
 
@@ -798,7 +693,7 @@ impl<'a, T> Widget for TextEdit<'a, T>
                     // upstream.
                     match &string[..] {
                         "\u{f700}" | "\u{f701}" | "\u{f702}" | "\u{f703}" => continue 'events,
-                        _ => (),
+                        _ => ()
                     }
 
                     let font = ui.fonts.get(font_id).unwrap();
@@ -807,14 +702,12 @@ impl<'a, T> Widget for TextEdit<'a, T>
                             *text.to_mut() = new_text;
                             cursor = new_cursor;
                             state.update(|state| state.line_infos = new_line_infos);
-                        }
-                        _ => (),
+                        }, _ => ()
                     }
-                }
+                },
 
                 // Check whether or not we need to extend a text selection or drag some text.
-                event::Widget::Drag(drag_event) if drag_event.button ==
-                                                   input::MouseButton::Left => {
+                event::Widget::Drag(drag_event) if drag_event.button == input::MouseButton::Left => {
                     match drag {
 
                         Some(Drag::Selecting) => {
@@ -826,39 +719,28 @@ impl<'a, T> Widget for TextEdit<'a, T>
                             let infos = &state.line_infos;
                             let font = ui.fonts.get(font_id).unwrap();
                             match closest_cursor_index_and_xy(abs_xy, &text, infos, font) {
-                                Some((end_cursor_idx, _)) => {
+                                Some((end_cursor_idx, _)) =>
                                     cursor = Cursor::Selection {
                                         start: start_cursor_idx,
                                         end: end_cursor_idx,
-                                    }
-                                }
+                                    },
                                 _ => (),
                             }
-                        }
+                        },
 
                         // TODO: This should move the selected text.
                         Some(Drag::MoveSelection) => {
                             unimplemented!();
-                        }
+                        },
 
                         None => (),
                     }
-                }
+                },
 
                 _ => (),
             }
         }
-        //work
-        let mut keypadvariant = state.keypadvariant.clone();
-        render_keypad(self.master_id,
-                      ui,
-                      state.ids.clone(),
-                      &mut text,
-                      &mut keypadvariant,
-                      &self.meta_tuple,
-                      &mut cursor,
-                      &state.line_infos,
-                      style);
+
         if let Some(_) = ui.widget_input(id).mouse() {
             ui.set_mouse_cursor(cursor::MouseCursor::Text);
         }
@@ -871,9 +753,7 @@ impl<'a, T> Widget for TextEdit<'a, T>
         if state.drag != drag {
             state.update(|state| state.drag = drag);
         }
-        if state.keypadvariant != keypadvariant {
-            state.update(|state| state.keypadvariant = keypadvariant.clone());
-        }
+
         // Takes the `String` from the `Cow` if the `Cow` is `Owned`.
         fn take_if_owned(text: std::borrow::Cow<str>) -> Option<String> {
             match text {
@@ -887,15 +767,12 @@ impl<'a, T> Widget for TextEdit<'a, T>
         let num_lines = state.line_infos.iter().count();
         let text_height = text::height(num_lines, font_size, line_spacing);
         let text_y_range = Range::new(0.0, text_height).align_to(y_align, rect.y);
-        let text_rect = Rect {
-            x: rect.x,
-            y: text_y_range,
-        };
+        let text_rect = Rect { x: rect.x, y: text_y_range };
 
         match line_wrap {
-                Wrap::Whitespace => widget::Text::new(&text).wrap_by_word(),
-                Wrap::Character => widget::Text::new(&text).wrap_by_character(),
-            }
+            Wrap::Whitespace => widget::Text::new(&text).wrap_by_word(),
+            Wrap::Character => widget::Text::new(&text).wrap_by_character(),
+        }
             .font_id(font_id)
             .wh(text_rect.dim())
             .xy(text_rect.xy())
@@ -914,12 +791,7 @@ impl<'a, T> Widget for TextEdit<'a, T>
         };
 
         // If this widget is not capturing the keyboard, no need to draw cursor or selection.
-        let keypadout = if let KeyPadVariant::None = keypadvariant {
-            false
-        } else {
-            true
-        };
-        if (ui.global_input().current.widget_capturing_keyboard != Some(id)) & (!keypadout) {
+        if ui.global_input().current.widget_capturing_keyboard != Some(id) {
             return take_if_owned(text);
         }
 
@@ -950,7 +822,7 @@ impl<'a, T> Widget for TextEdit<'a, T>
         if cursor_has_changed {
             let cursor_rect = ui.rect_of(state.ids.cursor).unwrap();
             if prev_cursor_rect != Some(cursor_rect) {
-
+                use graph::Walker;
                 let mut scrollable_parents = ui.widget_graph().scrollable_y_parent_recursion(id);
                 if let Some(parent_id) = scrollable_parents.next_node(ui.widget_graph()) {
                     if let Some(parent_rect) = ui.rect_of(parent_id) {
@@ -958,7 +830,7 @@ impl<'a, T> Widget for TextEdit<'a, T>
                         if cursor_rect.bottom() < parent_rect.bottom() {
                             let distance = parent_rect.bottom() - cursor_rect.bottom();
                             ui.scroll_widget(parent_id, [0.0, distance]);
-                            // If cursor is above, scroll up.
+                        // If cursor is above, scroll up.
                         } else if cursor_rect.top() > parent_rect.top() {
                             let distance = cursor_rect.top() - parent_rect.top();
                             ui.scroll_widget(parent_id, [0.0, -distance]);
@@ -974,12 +846,8 @@ impl<'a, T> Widget for TextEdit<'a, T>
             let selected_rects: Vec<Rect> = {
                 let line_infos = state.line_infos.iter().cloned();
                 let lines = line_infos.clone().map(|info| &text[info.byte_range()]);
-                let line_rects = text::line::rects(line_infos.clone(),
-                                                   font_size,
-                                                   rect,
-                                                   justify,
-                                                   y_align,
-                                                   line_spacing);
+                let line_rects = text::line::rects(line_infos.clone(), font_size, rect,
+                                                   justify, y_align, line_spacing);
                 let lines_with_rects = lines.zip(line_rects.clone());
                 let font = ui.fonts.get(font_id).unwrap();
                 text::line::selected_rects(lines_with_rects, font, font_size, start, end).collect()
@@ -994,10 +862,7 @@ impl<'a, T> Widget for TextEdit<'a, T>
 
             // Draw a semi-transparent `Rectangle` for the selected range across each line.
             let selected_rect_color = color.highlighted().alpha(0.25);
-            let iter = state.ids
-                .selected_rectangles
-                .iter()
-                .zip(&selected_rects);
+            let iter = state.ids.selected_rectangles.iter().zip(&selected_rects);
             for (&selected_rectangle_id, selected_rect) in iter {
                 widget::Rectangle::fill(selected_rect.dim())
                     .xy(selected_rect.xy())
@@ -1010,11 +875,10 @@ impl<'a, T> Widget for TextEdit<'a, T>
 
         take_if_owned(text)
     }
+
 }
 
 
-impl<'a, T> Colorable for TextEdit<'a, T>
-    where T: KeyButtonTrait + 'a
-{
+impl<'a> Colorable for TextEdit<'a> {
     builder_method!(color { style.color = Some(Color) });
 }

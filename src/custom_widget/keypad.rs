@@ -1,5 +1,5 @@
+use conrod::{widget, Labelable, Positionable,Sizeable, Widget, color, Borderable};
 use cardgame_widgets::custom_widget::wrap_list;
-use conrod::{widget, Labelable, Positionable, Sizeable, Widget, color, Borderable};
 use conrod::widget::primitive::image::Image;
 use conrod::UiCell;
 use custom_widget::keybut;
@@ -81,8 +81,8 @@ pub fn render_keypad<T: KeyButtonTrait>(master_id: widget::Id,
     }
 
     let mut item0 = wrap_list::WrapList::new(len)
-        .w(w_can)
-        .h(h_can)
+      //  .w(w_can)
+        .w_h(w_can,h_can)
         .top_left_of(ids.keyboard_canvas)
         .set(ids.keyboard, ui);
     let mut k_h_iter = k_hash.iter();
