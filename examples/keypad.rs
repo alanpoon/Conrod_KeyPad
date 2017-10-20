@@ -14,12 +14,11 @@ extern crate find_folder;
 pub mod support;
 use conrod::{widget, color, Colorable, Widget, Positionable, Sizeable};
 use conrod::backend::glium::glium::{self, glutin, Surface};
-#[cfg(feature="hotload")]
-use conrod_keypad::dyapplication as application;
 use conrod_keypad::custom_widget::{text_edit, keypad};
 use conrod_keypad::english;
+use conrod_keypad::sprite;
 use std::time::Instant;
-const LIB_PATH: &'static str = "target/debug/libtest_shared.so";
+
 widget_ids! {
     pub struct Ids {
          master,
@@ -53,7 +52,6 @@ fn main() {
     let keypad_png = image_map.insert(keypad_png);
     let events_loop_proxy = events_loop.create_proxy();
     let mut ids = Ids::new(ui.widget_id_generator());
-    let mut app = application::Application::new(LIB_PATH);
     let mut demo_text_edit = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \
             Mauris aliquet porttitor tellus vel euismod. Integer lobortis volutpat bibendum. Nulla \
             finibus odio nec elit condimentum, rhoncus fermentum purus lacinia. Interdum et malesuada \
@@ -69,8 +67,7 @@ fn main() {
     let sixteen_ms = std::time::Duration::from_millis(100);
 
     'render: loop {
-        application::Application::in_loop(&mut app, LIB_PATH, &mut last_update_sys);
-        let english_tuple = english::populate(keypad_png, app.get_spriteinfo());
+        let english_tuple = english::populate(keypad_png, sprite::get_spriteinfo());
         let mut to_break = false;
         let mut to_continue = false;
         events_loop.poll_events(|event| {
@@ -114,7 +111,6 @@ fn main() {
                             &mut demo_text_edit,
                             &mut keypadvariant,
                             &english_tuple,
-                            app.get_keyboard_styles([screen_w as f64, screen_h as f64 * 0.4]),
                             &mut ids);
             }
             Some(ConrodMessage::Thread(t)) => {
@@ -124,7 +120,6 @@ fn main() {
                             &mut demo_text_edit,
                             &mut keypadvariant,
                             &english_tuple,
-                            app.get_keyboard_styles([screen_w as f64, screen_h as f64 * 0.4]),
                             &mut ids);
             }
             None => {
@@ -161,10 +156,9 @@ fn set_widgets(ui: &mut conrod::UiCell,
                english_tuple: &(Vec<english::KeyButton>,
                                 Vec<english::KeyButton>,
                                 english::KeyButton),
-               keybuttonstyle: application::KeyButtonStyle,
                ids: &mut Ids) {
     widget::Canvas::new().color(color::LIGHT_BLUE).set(ids.master, ui);
-    for edit in text_edit::TextEdit::new(demo_text_edit,ids.master,&english_tuple,keybuttonstyle)
+    for edit in text_edit::TextEdit::new(demo_text_edit,ids.master,&english_tuple)
             .color(color::WHITE)
             .padded_w_of(ids.master, 20.0)
             .mid_top_of(ids.master)

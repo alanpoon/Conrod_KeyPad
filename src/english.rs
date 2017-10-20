@@ -1,6 +1,6 @@
 use custom_widget::keypad::{KeyVariant, KeyPadVariant, ClosureVariant, KeyButtonTrait,
                             ImageOrString, KeyPressType, BlankEnum};
-use custom_widget::text_edit::Cursor;
+use custom_widget::text_edit::{Style, Cursor};
 use conrod;
 use conrod::widget;
 use conrod::widget::primitive::image::Image;
@@ -8,22 +8,20 @@ use conrod::text::cursor::{index_before_char, Index};
 use conrod::text::line::Info;
 use conrod::text;
 use std;
-#[cfg(feature="hotload")]
-use dyapplication as application;
-use application::SpriteInfo;
+use sprite::SpriteInfo;
 pub struct KeyButton(KeyVariant);
 impl KeyButtonTrait for KeyButton {
-    fn dimension(&self, static_style: application::KeyButtonStyle) -> conrod::position::Dimensions {
+    fn dimension(&self, style: Style) -> [f64; 2] {
         match &self.0 {
-            &KeyVariant::StringOnly(_) => static_style.normal.0,
-            &KeyVariant::Num(_, _) => static_style.num.0,
-            &KeyVariant::StringHold(_, _) => static_style.normal.0,
-            &KeyVariant::Spacebar(_, _) => static_style.spacebar,
-            &KeyVariant::Blank(_, _) => static_style.normal.0,
+            &KeyVariant::StringOnly(_) => style.letter_dim.unwrap(),
+            &KeyVariant::Num(_, _) => style.num_dim.unwrap(),
+            &KeyVariant::StringHold(_, _) => style.letter_dim.unwrap(),
+            &KeyVariant::Spacebar(_, _) => style.spacebar_dim.unwrap(),
+            &KeyVariant::Blank(_, _) => style.letter_dim.unwrap(),
             &KeyVariant::Closure(ref a, _) => {
                 match a {
-                    &ClosureVariant::EdgeRow3(_) => static_style.edge_row3.0,
-                    &ClosureVariant::EdgeRow4(_) => static_style.edge_row4.0,
+                    &ClosureVariant::EdgeRow3(_) => style.edge_row3_dim.unwrap(),
+                    &ClosureVariant::EdgeRow4(_) => style.edge_row4_dim.unwrap(),
                 }
             }
         }

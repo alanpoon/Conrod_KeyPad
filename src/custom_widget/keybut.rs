@@ -60,6 +60,7 @@ pub struct Style {
     #[conrod(default = "position::Relative::Align(Align::Middle)")]
     pub label_y: Option<position::Relative>,
 }
+
 /// The State of the Button widget that will be cached within the Ui.
 pub struct FlatState {
     /// Track whether some sort of dragging is currently occurring.

@@ -12,7 +12,7 @@ use conrod::cursor;
 use conrod::graph::Walker;
 use conrod::widget::primitive::text::Wrap;
 use custom_widget::keypad::*;
-use application;
+use conrod::UiCell;
 /// A widget for displaying and mutating multi-line text, given as a `String`.
 ///
 /// By default the text is wrapped via the first whitespace before the line exceeds the
@@ -25,7 +25,6 @@ pub struct TextEdit<'a, T: KeyButtonTrait + 'a> {
     style: Style,
     master_id: widget::Id,
     meta_tuple: &'a (Vec<T>, Vec<T>, T),
-    static_style: application::KeyButtonStyle,
 }
 
 /// Unique graphical styling for the TextEdit.
@@ -55,7 +54,36 @@ pub struct Style {
     /// The font used for the `Text`.
     #[conrod(default = "theme.font_id")]
     pub font_id: Option<Option<text::font::Id>>,
+    #[conrod(default ="[0.1,0.25]")]
+    pub letter_dim: Option<[f64; 2]>,
+    #[conrod(default="[0.1,0.25]")]
+    pub num_dim: Option<[f64; 2]>,
+    #[conrod(default="[0.15,0.25]")]
+    pub edge_row3_dim: Option<[f64; 2]>,
+    #[conrod(default="[0.175,0.25]")]
+    pub edge_row4_dim: Option<[f64; 2]>,
+    #[conrod(default="[0.55,0.25]")]
+    pub spacebar_dim: Option<[f64; 2]>,
 }
+impl Style {
+    pub fn normalize(&self, screen: [f64; 2], ui: &UiCell) -> Style {
+        let mut k = self.clone();
+        let (letter_dim, num_dim, edge_row3_dim, edge_row4_dim, spacebar_dim) =
+            (self.letter_dim(ui.theme()),
+             self.num_dim(ui.theme()),
+             self.edge_row3_dim(ui.theme()),
+             self.edge_row4_dim(ui.theme()),
+             self.spacebar_dim(ui.theme()));
+        k.letter_dim = Some([letter_dim[0] * screen[0], letter_dim[1] * screen[1]]);
+        k.num_dim = Some([num_dim[0] * screen[0], num_dim[1] * screen[1]]);
+        k.edge_row3_dim = Some([edge_row3_dim[0] * screen[0], edge_row3_dim[1] * screen[1]]);
+        k.edge_row4_dim = Some([edge_row4_dim[0] * screen[0], edge_row4_dim[1] * screen[1]]);
+        k.spacebar_dim = Some([spacebar_dim[0] * screen[0], spacebar_dim[1] * screen[1]]);
+
+        k
+    }
+}
+
 
 widget_ids! {
     #[derive(Clone)]
@@ -112,18 +140,13 @@ impl<'a, T> TextEdit<'a, T>
     where T: KeyButtonTrait + 'a
 {
     /// Construct a TextEdit widget.
-    pub fn new(text: &'a str,
-               master_id: widget::Id,
-               meta_tuple: &'a (Vec<T>, Vec<T>, T),
-               static_style: application::KeyButtonStyle)
-               -> Self {
+    pub fn new(text: &'a str, master_id: widget::Id, meta_tuple: &'a (Vec<T>, Vec<T>, T)) -> Self {
         TextEdit {
             common: widget::CommonBuilder::default(),
             style: Style::default(),
             text: text,
             master_id: master_id,
             meta_tuple: meta_tuple,
-            static_style: static_style,
         }
     }
 
@@ -191,6 +214,11 @@ impl<'a, T> TextEdit<'a, T>
         pub line_wrap { style.line_wrap = Some(Wrap) }
         pub line_spacing { style.line_spacing = Some(Scalar) }
         pub restrict_to_height { style.restrict_to_height = Some(bool) }
+        pub letter_dim{style.letter_dim = Some([f64;2])}
+        pub num_dim{style.num_dim = Some([f64;2])}
+        pub edge_row3_dim{style.edge_row3_dim = Some([f64;2])}
+        pub edge_row4_dim{style.edge_row4_dim = Some([f64;2])}
+        pub spacebar_dim{style.spacebar_dim = Some([f64;2])}
     }
 }
 
@@ -265,9 +293,11 @@ impl<'a, T> Widget for TextEdit<'a, T>
         // Retrieve the `font_id`, as long as a valid `Font` for it still exists.
         //
         // If we've no font to use for text logic, bail out without updating.
-        let font_id = match style.font_id(&ui.theme)
-                  .or(ui.fonts.ids().next())
-                  .and_then(|id| ui.fonts.get(id).map(|_| id)) {
+        let font_id = match style.font_id(&ui.theme).or(ui.fonts.ids().next()).and_then(|id| {
+                                                                              ui.fonts
+                                                                                  .get(id)
+                                                                                  .map(|_| id)
+                                                                          }) {
             Some(font_id) => font_id,
             None => return None,
         };
@@ -820,7 +850,6 @@ impl<'a, T> Widget for TextEdit<'a, T>
         }
         //work
         let mut keypadvariant = state.keypadvariant.clone();
-        let static_style_c = self.static_style.clone();
         render_keypad(self.master_id,
                       ui,
                       state.ids.clone(),
@@ -829,7 +858,7 @@ impl<'a, T> Widget for TextEdit<'a, T>
                       &self.meta_tuple,
                       &mut cursor,
                       &state.line_infos,
-                      static_style_c);
+                      style);
         if let Some(_) = ui.widget_input(id).mouse() {
             ui.set_mouse_cursor(cursor::MouseCursor::Text);
         }
