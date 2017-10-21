@@ -13,6 +13,7 @@ use conrod::graph::Walker;
 use conrod::widget::primitive::text::Wrap;
 use custom_widget::keypad::*;
 use conrod::UiCell;
+
 /// A widget for displaying and mutating multi-line text, given as a `String`.
 ///
 /// By default the text is wrapped via the first whitespace before the line exceeds the
@@ -492,16 +493,9 @@ impl<'a, T> Widget for TextEdit<'a, T>
             }
         };
 
-        // Check for the following events:
-        // - `Text` events for receiving new text.
-        // - Left mouse `Press` events for either:
-        //     - setting the cursor or start of a selection.
-        //     - begin dragging selected text.
-        // - Left mouse `Drag` for extending the end of the selection, or for dragging selected text.
-        // - Key presses for cursor movement.
-        'events: for widget_event in ui.widget_input(id).events() {
+        let mut events: Vec<event::Widget> = vec![];
+        for widget_event in ui.widget_input(id).events() {
             match widget_event {
-
                 event::Widget::Press(press) => {
                     match press.button {
 
@@ -524,6 +518,31 @@ impl<'a, T> Widget for TextEdit<'a, T>
                             // TODO: Differentiate between Selecting and MoveSelection.
                             drag = Some(Drag::Selecting);
                         }
+                        _ => {
+                            events.push(widget_event);
+                        }
+                    }
+                }
+                _ => {
+                    events.push(widget_event);
+                }
+
+            }
+        }
+        let mut keypadvariant = state.keypadvariant.clone();
+        render_keypad(self.master_id,
+                      ui,
+                      state.ids.clone(),
+                      &mut events,
+                      &mut keypadvariant,
+                      &self.meta_tuple,
+                      style);
+
+        'events: for widget_event in events {
+            match widget_event {
+
+                event::Widget::Press(press) => {
+                    match press.button {
 
                         // Check for control keys.
                         event::Button::Keyboard(key) => {
@@ -532,8 +551,9 @@ impl<'a, T> Widget for TextEdit<'a, T>
                                 // If `Cursor::Idx`, remove the `char` behind the cursor.
                                 // If `Cursor::Selection`, remove the selected text.
                                 input::Key::Backspace | input::Key::Delete => {
-                                    let delete_word = press.modifiers
-                                        .contains(input::keyboard::ModifierKey::CTRL);
+                                    let delete_word =
+                                        press.modifiers
+                                            .contains(input::keyboard::ModifierKey::CTRL);
 
                                     // Calculate start/end indices of text to remove
                                     let (start, end) = match cursor {
@@ -600,8 +620,11 @@ impl<'a, T> Widget for TextEdit<'a, T>
                                 input::Key::Left | input::Key::Right | input::Key::Up |
                                 input::Key::Down => {
                                     let font = ui.fonts.get(font_id).unwrap();
-                                    let move_word = press.modifiers.contains(input::keyboard::ModifierKey::CTRL);
-                                    let select = press.modifiers.contains(input::keyboard::ModifierKey::SHIFT);
+                                    let move_word =
+                                        press.modifiers
+                                            .contains(input::keyboard::ModifierKey::CTRL);
+                                    let select = press.modifiers
+                                        .contains(input::keyboard::ModifierKey::SHIFT);
 
                                     let (old_selection_start, cursor_idx) = match cursor {
                                         Cursor::Idx(idx) => (idx, idx),
@@ -683,7 +706,8 @@ impl<'a, T> Widget for TextEdit<'a, T>
 
                                 input::Key::A => {
                                     // Select all text on Ctrl+a.
-                                    if press.modifiers.contains(input::keyboard::ModifierKey::CTRL) {
+                                    if press.modifiers
+                                           .contains(input::keyboard::ModifierKey::CTRL) {
                                         let start = text::cursor::Index { line: 0, char: 0 };
                                         let end = {
                                             let line_infos = state.line_infos.iter().cloned();
@@ -700,7 +724,8 @@ impl<'a, T> Widget for TextEdit<'a, T>
 
                                 input::Key::E => {
                                     // move cursor to end.
-                                    if press.modifiers.contains(input::keyboard::ModifierKey::CTRL) {
+                                    if press.modifiers
+                                           .contains(input::keyboard::ModifierKey::CTRL) {
                                         let mut line_infos = state.line_infos.iter().cloned();
                                         let line = line_infos.len() - 1;
                                         match line_infos.nth(line) {
@@ -785,7 +810,8 @@ impl<'a, T> Widget for TextEdit<'a, T>
                 }
 
                 event::Widget::Text(event::Text { string, modifiers }) => {
-                    if modifiers.contains(input::keyboard::ModifierKey::CTRL) || string.chars().count() == 0 ||
+                    if modifiers.contains(input::keyboard::ModifierKey::CTRL) ||
+                       string.chars().count() == 0 ||
                        string.chars().next().is_none() {
                         continue 'events;
                     }
@@ -848,17 +874,7 @@ impl<'a, T> Widget for TextEdit<'a, T>
                 _ => (),
             }
         }
-        //work
-        let mut keypadvariant = state.keypadvariant.clone();
-        render_keypad(self.master_id,
-                      ui,
-                      state.ids.clone(),
-                      &mut text,
-                      &mut keypadvariant,
-                      &self.meta_tuple,
-                      &mut cursor,
-                      &state.line_infos,
-                      style);
+
         if let Some(_) = ui.widget_input(id).mouse() {
             ui.set_mouse_cursor(cursor::MouseCursor::Text);
         }
@@ -874,6 +890,14 @@ impl<'a, T> Widget for TextEdit<'a, T>
         if state.keypadvariant != keypadvariant {
             state.update(|state| state.keypadvariant = keypadvariant.clone());
         }
+
+        state.update(|state| {
+                         let font = ui.fonts.get(font_id).unwrap();
+                         let w = rect.w();
+                         state.line_infos = line_infos(&text, font, font_size, line_wrap, w)
+                .collect();
+                     });
+
         // Takes the `String` from the `Cow` if the `Cow` is `Owned`.
         fn take_if_owned(text: std::borrow::Cow<str>) -> Option<String> {
             match text {

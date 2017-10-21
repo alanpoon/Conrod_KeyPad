@@ -1,12 +1,14 @@
-use conrod::{widget, Labelable, Positionable,Sizeable, Widget, color, Borderable};
+use conrod::{widget, Labelable, Positionable, Sizeable, Widget, color, Borderable};
 use cardgame_widgets::custom_widget::wrap_list;
 use conrod::widget::primitive::image::Image;
 use conrod::UiCell;
+use conrod::Ui;
+use conrod::event;
 use custom_widget::keybut;
 use custom_widget::keybut::KeyButEnum;
 use custom_widget::text_edit::{Cursor, Ids, Style};
 use conrod::text::line::Info;
-
+use std::ops::Deref;
 use std;
 #[derive(Clone,Debug,PartialEq)]
 pub enum KeyPadVariant {
@@ -26,11 +28,7 @@ pub enum KeyVariant {
     Blank(f64, BlankEnum), //spacing multiply by width, used as spacing, KeyButEnum needs to be normalize
     StringOnly(String),
     StringHold(String, String),
-    Closure(ClosureVariant,
-            Box<Fn(&mut std::borrow::Cow<str>,
-                   &mut KeyPadVariant,
-                   &mut Cursor,
-                   &Vec<Info>)>),
+    Closure(ClosureVariant, Box<Fn(&mut Vec<event::Widget>, &mut KeyPadVariant)>),
     Num(String, String),
     Spacebar(Image, String),
 }
@@ -46,23 +44,19 @@ pub enum ClosureVariant {
 pub trait KeyButtonTrait {
     fn dimension(&self, Style) -> [f64; 2];
     fn get_variant(&self) -> &KeyVariant;
-    fn process(&self,
-               &mut std::borrow::Cow<str>,
-               &mut KeyPadVariant,
-               &mut Cursor,
-               &Vec<Info>,
-               KeyPressType);
+    fn process(&self, &mut Vec<event::Widget>, &mut KeyPadVariant, KeyPressType);
 }
 
-pub fn render_keypad<T: KeyButtonTrait>(master_id: widget::Id,
-                                        ui: &mut UiCell,
-                                        ids: Ids,
-                                        text_edit: &mut std::borrow::Cow<str>,
-                                        keypad_variant: &mut KeyPadVariant,
-                                        meta_tuple: &(Vec<T>, Vec<T>, T),
-                                        mut cursor: &mut Cursor,
-                                        lineinfo: &Vec<Info>,
-                                        style: &Style) {
+pub fn render_keypad<T>(master_id: widget::Id,
+                        ui: &mut UiCell,
+                        ids: Ids,
+                        events: &mut Vec<event::Widget>,
+                        keypad_variant: &mut KeyPadVariant,
+                        meta_tuple: &(Vec<T>, Vec<T>, T),
+                        style: &Style)
+    where T: KeyButtonTrait
+{
+
     let can = ui.rect_of(master_id).unwrap();
     let w_can = can.w();
     let h_can = can.h() * 0.4;
@@ -81,8 +75,7 @@ pub fn render_keypad<T: KeyButtonTrait>(master_id: widget::Id,
     }
 
     let mut item0 = wrap_list::WrapList::new(len)
-      //  .w(w_can)
-        .w_h(w_can,h_can)
+        .w_h(w_can, h_can)
         .top_left_of(ids.keyboard_canvas)
         .set(ids.keyboard, ui);
     let mut k_h_iter = k_hash.iter();
@@ -172,36 +165,19 @@ pub fn render_keypad<T: KeyButtonTrait>(master_id: widget::Id,
                 let jj = j.wh(k_h.dimension(style)).border_color(color::BLACK);
                 let jk = item.set(jj, k_h.dimension(style)[0], ui);
                 if jk.clone().was_hold() {
-                    k_h.process(text_edit,
-                                keypad_variant,
-                                &mut cursor,
-                                lineinfo,
-                                KeyPressType::Hold);
+                    k_h.process(events, keypad_variant, KeyPressType::Hold);
 
                 } else if jk.was_clicked() {
-                    k_h.process(text_edit,
-                                keypad_variant,
-                                &mut cursor,
-                                lineinfo,
-                                KeyPressType::Press);
-
+                    k_h.process(events, keypad_variant, KeyPressType::Press);
                 }
             }
             KeyButEnum::Image(j) => {
                 let jj = j.wh(k_h.dimension(style)).border_color(color::BLACK);
                 let jk = item.set(jj, k_h.dimension(style)[0], ui);
                 if jk.clone().was_hold() {
-                    k_h.process(text_edit,
-                                keypad_variant,
-                                &mut cursor,
-                                lineinfo,
-                                KeyPressType::Hold);
+                    k_h.process(events, keypad_variant, KeyPressType::Hold);
                 } else if jk.was_clicked() {
-                    k_h.process(text_edit,
-                                keypad_variant,
-                                &mut cursor,
-                                lineinfo,
-                                KeyPressType::Press);
+                    k_h.process(events, keypad_variant, KeyPressType::Press);
 
                 }
             }
@@ -224,11 +200,7 @@ pub fn render_keypad<T: KeyButtonTrait>(master_id: widget::Id,
                         .up_from(ids.keyboard_canvas, 0.0)
                         .set(ids.close_tab, ui);
                     if jj.was_clicked() {
-                        meta_tuple.2.process(text_edit,
-                                             keypad_variant,
-                                             &mut cursor,
-                                             lineinfo,
-                                             KeyPressType::Press);
+                        meta_tuple.2.process(events, keypad_variant, KeyPressType::Press);
                     }
                 }
             }

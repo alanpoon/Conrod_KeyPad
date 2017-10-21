@@ -2,6 +2,10 @@ use custom_widget::keypad::{KeyVariant, KeyPadVariant, ClosureVariant, KeyButton
                             ImageOrString, KeyPressType, BlankEnum};
 use custom_widget::text_edit::{Style, Cursor};
 use conrod;
+use conrod::event;
+use conrod::event::{Text, Input, Press, Button};
+use conrod::input::{Key, ModifierKey};
+use conrod::Ui;
 use conrod::widget;
 use conrod::widget::primitive::image::Image;
 use conrod::text::cursor::{index_before_char, Index};
@@ -30,10 +34,8 @@ impl KeyButtonTrait for KeyButton {
         &self.0
     }
     fn process(&self,
-               te: &mut std::borrow::Cow<str>,
+               events: &mut Vec<event::Widget>,
                keypadvariant: &mut KeyPadVariant,
-               cursor: &mut Cursor,
-               lineinfo: &Vec<Info>,
                keypresstype: KeyPressType) {
         let mut tstring = "".to_owned();
         match self.get_variant() {
@@ -42,68 +44,61 @@ impl KeyButtonTrait for KeyButton {
                     &mut KeyPadVariant::Letter(2) => {
                         tstring.push_str(s);
                         tstring = tstring.to_uppercase();
-                        cursor_start_end(cursor,
-                                         lineinfo,
-                                         te,
-                                         Some(tstring),
-                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
+                        events.push(conrod::event::Widget::Text(Text {
+                                                                    string: tstring,
+                                                                    modifiers: ModifierKey::empty(),
+                                                                }));
                     }
                     _ => {
-                        cursor_start_end(cursor,
-                                         lineinfo,
-                                         te,
-                                         Some(s.clone()),
-                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
+                        events.push(conrod::event::Widget::Text(Text {
+                                                                    string: s.clone(),
+                                                                    modifiers: ModifierKey::empty(),
+                                                                }));
                     }
                 }
             }
             &KeyVariant::Num(ref s1, ref s2) => {
                 match keypadvariant {
                     &mut KeyPadVariant::Num(1) => {
-                        cursor_start_end(cursor,
-                                         lineinfo,
-                                         te,
-                                         Some(s1.clone()),
-                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
+                        events.push(conrod::event::Widget::Text(Text {
+                                                                    string: s1.clone(),
+                                                                    modifiers: ModifierKey::empty(),
+                                                                }));
                     }
                     &mut KeyPadVariant::Num(2) => {
-                        cursor_start_end(cursor,
-                                         lineinfo,
-                                         te,
-                                         Some(s2.clone()),
-                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
+                        events.push(conrod::event::Widget::Text(Text {
+                                                                    string: s2.clone(),
+                                                                    modifiers: ModifierKey::empty(),
+                                                                }));
                     }
                     _ => {}
                 }
             }
             &KeyVariant::Spacebar(_, ref _l) => {
-                cursor_start_end(cursor,
-                                 lineinfo,
-                                 te,
-                                 Some(_l.clone()),
-                                 Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
+                events.push(conrod::event::Widget::Text(Text {
+                                                            string: _l.clone(),
+                                                            modifiers: ModifierKey::empty(),
+                                                        }));
             }
             &KeyVariant::StringHold(ref s1, ref s2) => {
                 match keypresstype {
                     KeyPressType::Press => {
-                        cursor_start_end(cursor,
-                                         lineinfo,
-                                         te,
-                                         Some(s1.clone()),
-                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
+                        events.push(conrod::event::Widget::Text(Text {
+                                                                    string: s1.clone(),
+                                                                    modifiers: ModifierKey::empty(),
+                                                                }));
                     }
                     KeyPressType::Hold => {
-                        cursor_start_end(cursor,
-                                         lineinfo,
-                                         te,
-                                         Some(s2.clone()),
-                                         Box::new(|cursor_idx, _| (cursor_idx, cursor_idx)));
+                        events.push(conrod::event::Widget::Text(Text {
+                                                                    string: s2.clone(),
+                                                                    modifiers: ModifierKey::empty(),
+                                                                }));
                     }
                 }
             }
             &KeyVariant::Blank(_, _) => {}
             &KeyVariant::Closure(_, ref c) => {
-                (c)(te, keypadvariant, cursor, lineinfo);
+                (c)(events, keypadvariant);
             }
         }
     }
@@ -141,7 +136,7 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::StringOnly(String::from("l"))),
     KeyButton(KeyVariant::Blank(0.5,BlankEnum::Flat)), //20
     KeyButton(KeyVariant::Blank(0.0,BlankEnum::Flat)), //21
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[0],images[1]])),Box::new(|_,kpv,_,_|{match kpv{
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[0],images[1]])),Box::new(|_,kpv|{match kpv{
         &mut KeyPadVariant::Letter(1)=>{
             *kpv= KeyPadVariant::Letter(2);
         },&mut KeyPadVariant::Letter(2)=>{
@@ -156,14 +151,14 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::StringOnly(String::from("n"))),
     KeyButton(KeyVariant::StringOnly(String::from("m"))),
     //backspace
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[2],images[2]])),Box::new(|te,_,cursor,lineinfo|{
-      cursor_start_end(cursor,lineinfo,te,None,Box::new(|cursor_idx,lineinfo|(cursor_idx,cursor_idx.previous(lineinfo.iter().cloned()).unwrap_or(cursor_idx))));
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[2],images[2]])),Box::new(|events,_|{
+        events.push(conrod::event::Widget::Press(Press{button:Button::Keyboard(Key::Backspace),modifiers:ModifierKey::empty()}));
         }))), //backspace
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("?123"),String::from("?123")])),Box::new(|_,kpv,_,_|{*kpv = KeyPadVariant::Num(1);}))),
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("?123"),String::from("?123")])),Box::new(|_,kpv|{*kpv = KeyPadVariant::Num(1);}))),
     KeyButton(KeyVariant::Spacebar(images[3],String::from(" "))),
     KeyButton(KeyVariant::StringOnly(String::from("."))),
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|te,_,cursor,lineinfo|{
-         cursor_start_end(cursor,lineinfo,te,Some("\n".to_owned()),Box::new(|cursor_idx,_|(cursor_idx,cursor_idx)));
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|events,_|{
+          events.push(conrod::event::Widget::Press(Press{button:Button::Keyboard(Key::Return),modifiers:ModifierKey::empty()}));
     })))
     ];
 
@@ -188,7 +183,7 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::Num(String::from("+"),String::from("^"))),
     KeyButton(KeyVariant::Num(String::from("("),String::from("`"))),
     KeyButton(KeyVariant::Num(String::from(")"),String::from("∘"))),//20
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::StringOnly([String::from("1/3"),String::from("2/3")])),Box::new(|_,kpv,_,_|{
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::StringOnly([String::from("1/3"),String::from("2/3")])),Box::new(|_,kpv|{
         match kpv{
             &mut KeyPadVariant::Num(1)=>{
                 *kpv = KeyPadVariant::Num(2);
@@ -207,68 +202,20 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::Num(String::from(":"),String::from(">>"))),
     KeyButton(KeyVariant::Num(String::from(";"),String::from("®"))),
     KeyButton(KeyVariant::Num(String::from(","),String::from("©"))),
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[2],images[2]])),Box::new(|te,_,cursor,lineinfo|{
-      cursor_start_end(cursor,lineinfo,te,None,Box::new(|cursor_idx,lineinfo|(cursor_idx,cursor_idx.previous(lineinfo.iter().cloned()).unwrap_or(cursor_idx))));
-        }))), //backspace
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("abc"),String::from("abc")])),Box::new(|_,kpv,_,_|{*kpv=KeyPadVariant::Num(1);}))),
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[2],images[2]])),Box::new(|events,_|{
+        events.push(conrod::event::Widget::Press(Press{button:Button::Keyboard(Key::Backspace),modifiers:ModifierKey::empty()}));
+         }))), //backspace
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("abc"),String::from("abc")])),Box::new(|_,kpv|{*kpv=KeyPadVariant::Num(1);}))),
     KeyButton(KeyVariant::Spacebar(images[3],String::from(" "))),
     KeyButton(KeyVariant::StringOnly(String::from("."))),
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|te,_,cursor,lineinfo|{
-           cursor_start_end(cursor,lineinfo,te,Some("\n".to_owned()),Box::new(|cursor_idx,_|(cursor_idx,cursor_idx)));
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|events,_|{
+           events.push(conrod::event::Widget::Press(Press{button:Button::Keyboard(Key::Return),modifiers:ModifierKey::empty()}));
         }))) //new line
         
         ];
     let closetabbutton =
         KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[5],
                                                                                      images[5]])),
-                                      Box::new(|_, kpv, _, _| { *kpv = KeyPadVariant::None; })));
+                                      Box::new(|_, kpv| { *kpv = KeyPadVariant::None; })));
     (letter_vec, number_vec, closetabbutton)
-}
-
-fn cursor_start_end(cursor: &mut Cursor,
-                    lineinfo: &Vec<Info>,
-                    te: &mut std::borrow::Cow<str>,
-                    s: Option<String>,
-                    cursor_closure: Box<Fn(Index, Vec<Info>) -> (Index, Index)>) {
-
-    let (start, end) = match cursor.clone() {
-        Cursor::Idx(cursor_idx) => (cursor_closure)(cursor_idx, lineinfo.clone()),
-        Cursor::Selection { start, end } => (start, end),
-    };
-    let (start_idx, end_idx) = {
-        let line_infos = lineinfo.iter().cloned();
-        (text::glyph::index_after_cursor(line_infos.clone(), start),
-         text::glyph::index_after_cursor(line_infos, end))
-    };
-
-
-    if let (Some(start_idx), Some(end_idx)) = (start_idx, end_idx) {
-        let (start_idx, end_idx) = (std::cmp::min(start_idx, end_idx),
-                                    std::cmp::max(start_idx, end_idx));
-        let new_cursor_char_idx = if let Some(ref _s) = s {
-            let string_char_count = _s.clone().chars().count();
-            start_idx + string_char_count
-        } else {
-            if start_idx > 0 { start_idx } else { 0 }
-        };
-        let new_cursor_idx = {
-            let line_infos = lineinfo.iter().cloned();
-            index_before_char(line_infos, new_cursor_char_idx).expect("char index was out of range")
-        };
-        *cursor = Cursor::Idx(new_cursor_idx);
-        *te.to_mut() = if let Some(_s) = s {
-            te.chars()
-                .take(start_idx)
-                .chain(_s.chars())
-                .chain(te.chars().skip(end_idx))
-                .collect()
-        } else {
-            te.chars()
-                .take(start_idx)
-                .chain(te.chars().skip(end_idx))
-                .collect()
-        }
-
-    }
-
 }

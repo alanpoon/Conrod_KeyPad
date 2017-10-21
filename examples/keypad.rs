@@ -52,22 +52,15 @@ fn main() {
     let keypad_png = image_map.insert(keypad_png);
     let events_loop_proxy = events_loop.create_proxy();
     let mut ids = Ids::new(ui.widget_id_generator());
-    let mut demo_text_edit = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \
-            Mauris aliquet porttitor tellus vel euismod. Integer lobortis volutpat bibendum. Nulla \
-            finibus odio nec elit condimentum, rhoncus fermentum purus lacinia. Interdum et malesuada \
-            fames ac ante ipsum primis in faucibus. Cras rhoncus nisi nec dolor bibendum pellentesque. \
-            Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. \
-            Quisque commodo nibh hendrerit nunc sollicitudin sodales. Cras vitae tempus ipsum. Nam \
-            magna est, efficitur suscipit dolor eu, consectetur consectetur urna.".to_owned();
+    let mut demo_text_edit = "".to_owned();
     let mut last_update = std::time::Instant::now();
     let mut last_update_sys = std::time::SystemTime::now();
     let mut c = 0;
     let mut keypadvariant = keypad::KeyPadVariant::Letter(1);
     let mut captured_event: Option<ConrodMessage> = None;
     let sixteen_ms = std::time::Duration::from_millis(100);
-
+    let english_tuple = english::populate(keypad_png, sprite::get_spriteinfo());
     'render: loop {
-        let english_tuple = english::populate(keypad_png, sprite::get_spriteinfo());
         let mut to_break = false;
         let mut to_continue = false;
         events_loop.poll_events(|event| {
