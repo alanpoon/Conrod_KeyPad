@@ -14,6 +14,7 @@ extern crate find_folder;
 pub mod support;
 use conrod::{widget, color, Colorable, Widget, Positionable, Sizeable};
 use conrod::backend::glium::glium::{self, glutin, Surface};
+use conrod::event;
 use conrod_keypad::custom_widget::{text_edit, keypad};
 use conrod_keypad::english;
 use conrod_keypad::sprite;
@@ -27,6 +28,7 @@ widget_ids! {
          text_edit
     }
 }
+#[derive(Clone)]
 pub enum ConrodMessage {
     Event(Instant, conrod::event::Input),
     Thread(Instant),
@@ -57,6 +59,7 @@ fn main() {
     let mut last_update_sys = std::time::SystemTime::now();
     let mut c = 0;
     let mut keypadvariant = keypad::KeyPadVariant::Letter(1);
+    let mut old_captured_event: Option<ConrodMessage> = None;
     let mut captured_event: Option<ConrodMessage> = None;
     let sixteen_ms = std::time::Duration::from_millis(100);
     let english_tuple = english::populate(keypad_png, sprite::get_spriteinfo());
@@ -86,7 +89,14 @@ fn main() {
                 }
                 Some(input) => {
                     let d = std::time::Instant::now();
-                    captured_event = Some(ConrodMessage::Event(d, input));
+                    if let event::Input::Text(s) = input.clone() {
+                        if s != String::from("") {
+                            captured_event = Some(ConrodMessage::Event(d, input));
+                        }
+                    } else {
+                        captured_event = Some(ConrodMessage::Event(d, input));
+                    }
+
                 }
             };
         });
@@ -97,18 +107,26 @@ fn main() {
             continue;
         }
         match captured_event {
-            Some(ConrodMessage::Event(_, ref input)) => {
-                ui.handle_event(input.clone());
+            Some(ConrodMessage::Event(d, ref input)) => {
+                if let Some(ConrodMessage::Event(oldd, ref oldinput)) = old_captured_event {
+                    if oldinput.clone() != input.clone() {
+                        ui.handle_event(input.clone());
+                    }
+                }
+                if let None = old_captured_event {
+                    ui.handle_event(input.clone());
+                }
+                old_captured_event = Some(ConrodMessage::Event(d, input.clone()));
                 let mut ui = ui.set_widgets();
                 set_widgets(&mut ui,
                             &mut demo_text_edit,
                             &mut keypadvariant,
                             &english_tuple,
                             &mut ids);
+
             }
             Some(ConrodMessage::Thread(t)) => {
                 let mut ui = ui.set_widgets();
-                let screen_dim = ui.wh_of(ids.master).unwrap();
                 set_widgets(&mut ui,
                             &mut demo_text_edit,
                             &mut keypadvariant,
