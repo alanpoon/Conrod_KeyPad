@@ -232,7 +232,7 @@ impl<'a, T> Widget for TextEdit<'a, T>
     // - Allows for mutating an existing `String` directly
     // - Enumerates possible mutations (i.e. InsertChar, RemoveCharRange, etc).
     // - Enumerates cursor movement and range selection.
-    type Event = Option<String>;
+    type Event = (Option<String>, bool);
 
     fn init_state(&self, id_gen: widget::id::Generator) -> Self::State {
         State {
@@ -294,13 +294,18 @@ impl<'a, T> Widget for TextEdit<'a, T>
         // Retrieve the `font_id`, as long as a valid `Font` for it still exists.
         //
         // If we've no font to use for text logic, bail out without updating.
-        let font_id = match style.font_id(&ui.theme).or(ui.fonts.ids().next()).and_then(|id| {
-                                                                              ui.fonts
-                                                                                  .get(id)
-                                                                                  .map(|_| id)
-                                                                          }) {
+        let font_id = match style.font_id(&ui.theme)
+                  .or(ui.fonts.ids().next())
+                  .and_then(|id| ui.fonts.get(id).map(|_| id)) {
             Some(font_id) => font_id,
-            None => return None,
+            None => {
+                return (None,
+                        if let KeyPadVariant::None = state.keypadvariant.clone() {
+                            false
+                        } else {
+                            true
+                        })
+            }
         };
 
         let font_size = style.font_size(ui.theme());
@@ -944,7 +949,12 @@ impl<'a, T> Widget for TextEdit<'a, T>
             true
         };
         if (ui.global_input().current.widget_capturing_keyboard != Some(id)) & (!keypadout) {
-            return take_if_owned(text);
+            return (take_if_owned(text),
+                    if let KeyPadVariant::None = state.keypadvariant.clone() {
+                        false
+                    } else {
+                        true
+                    });
         }
 
         let (cursor_x, cursor_y_range) = {
@@ -1032,7 +1042,12 @@ impl<'a, T> Widget for TextEdit<'a, T>
             }
         }
 
-        take_if_owned(text)
+        (take_if_owned(text),
+         if let KeyPadVariant::None = state.keypadvariant.clone() {
+             false
+         } else {
+             true
+         })
     }
 }
 

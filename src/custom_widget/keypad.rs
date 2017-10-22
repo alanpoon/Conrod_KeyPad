@@ -59,7 +59,7 @@ pub fn render_keypad<T>(master_id: widget::Id,
 
     let can = ui.rect_of(master_id).unwrap();
     let w_can = can.w();
-    let h_can = can.h() * 0.4;
+    let h_can = can.h() * 0.3;
     let style = style.normalize([w_can, h_can], &ui);
     let (k_hash, len) = match keypad_variant {
         &mut KeyPadVariant::Num(_) => (&meta_tuple.1, meta_tuple.1.len()),

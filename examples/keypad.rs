@@ -151,14 +151,16 @@ fn set_widgets(ui: &mut conrod::UiCell,
                                 english::KeyButton),
                ids: &mut Ids) {
     widget::Canvas::new().color(color::LIGHT_BLUE).set(ids.master, ui);
-    for edit in text_edit::TextEdit::new(demo_text_edit,ids.master,&english_tuple)
+
+    let (editz, keypad_bool) = text_edit::TextEdit::new(demo_text_edit,ids.master,&english_tuple)
             .color(color::WHITE)
             .padded_w_of(ids.master, 20.0)
             .mid_top_of(ids.master)
             .center_justify()
             .line_spacing(2.5)
             .restrict_to_height(false) // Let the height grow infinitely and scroll.
-            .set(ids.text_edit, ui) {
+            .set(ids.text_edit, ui);
+    for edit in editz {
         *demo_text_edit = edit;
     }
 
