@@ -54,7 +54,7 @@ fn main() {
     let keypad_png = image_map.insert(keypad_png);
     let events_loop_proxy = events_loop.create_proxy();
     let mut ids = Ids::new(ui.widget_id_generator());
-    let mut demo_text_edit = "".to_owned();
+    let mut demo_text_edit = "Click here !".to_owned();
     let mut last_update = std::time::Instant::now();
     let mut last_update_sys = std::time::SystemTime::now();
     let mut c = 0;
