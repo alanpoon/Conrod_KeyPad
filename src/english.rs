@@ -1,17 +1,12 @@
 use custom_widget::keypad::{KeyVariant, KeyPadVariant, ClosureVariant, KeyButtonTrait,
                             ImageOrString, KeyPressType, BlankEnum};
-use custom_widget::text_edit::{Style, Cursor};
+use custom_widget::text_edit::Style;
 use conrod;
 use conrod::event;
-use conrod::event::{Text, Input, Press, Button};
+use conrod::event::{Text, Press, Button};
 use conrod::input::{Key, ModifierKey};
-use conrod::Ui;
 use conrod::widget;
 use conrod::widget::primitive::image::Image;
-use conrod::text::cursor::{index_before_char, Index};
-use conrod::text::line::Info;
-use conrod::text;
-use std;
 use sprite::SpriteInfo;
 pub struct KeyButton(KeyVariant);
 impl KeyButtonTrait for KeyButton {

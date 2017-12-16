@@ -286,7 +286,7 @@ impl<'a> Widget for Button<'a, Flat> {
 
     /// Update the state of the Button.
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        let widget::UpdateArgs { id, mut state, style, rect, ui, .. } = args;
+        let widget::UpdateArgs { id, state, style, rect, ui, .. } = args;
         let Button { maybe_label, maybe_label_with_superscript, .. } = self;
         let mut drag = state.drag.clone();
         let interaction = interaction_and_times_triggered(id, &mut drag, ui);
