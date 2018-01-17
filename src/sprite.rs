@@ -9,7 +9,7 @@ pub struct SpriteInfo {
 }
 pub fn get_spriteinfo() -> SpriteInfo {
     SpriteInfo {
-        first: (0.0, 400.0),
+        first: (0.0, 600.0),
         num_in_row: 3.0,
         w_h: (200.0, 200.0),
         pad: (0.0, 0.0, 0.0, 0.0),

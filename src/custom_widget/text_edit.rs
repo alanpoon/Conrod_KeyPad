@@ -294,11 +294,9 @@ impl<'a, T> Widget for TextEdit<'a, T>
         // Retrieve the `font_id`, as long as a valid `Font` for it still exists.
         //
         // If we've no font to use for text logic, bail out without updating.
-        let font_id = match style.font_id(&ui.theme).or(ui.fonts.ids().next()).and_then(|id| {
-                                                                              ui.fonts
-                                                                                  .get(id)
-                                                                                  .map(|_| id)
-                                                                          }) {
+        let font_id = match style.font_id(&ui.theme)
+                  .or(ui.fonts.ids().next())
+                  .and_then(|id| ui.fonts.get(id).map(|_| id)) {
             Some(font_id) => font_id,
             None => {
                 return (None,

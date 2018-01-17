@@ -7,6 +7,7 @@ use conrod::event::{Text, Press, Button};
 use conrod::input::{Key, ModifierKey};
 use conrod::widget;
 use conrod::widget::primitive::image::Image;
+use conrod::widget::envelope_editor::EnvelopePoint;
 use sprite::SpriteInfo;
 pub struct KeyButton(KeyVariant);
 impl KeyButtonTrait for KeyButton {
@@ -102,11 +103,18 @@ pub fn populate(image_id: conrod::image::Id,
                 spriteinfo: SpriteInfo)
                 -> (Vec<KeyButton>, Vec<KeyButton>, KeyButton) {
     //(letter_vec,number_vec,image_button_for_closetab)
+    let space_rect = spriteinfo.src_rect(6.0);
+    let top_right_x = space_rect.top_right().clone().get_x();
+    let mut new_top_right = space_rect.top_right().clone();
+    new_top_right.set_x(top_right_x + 400.0);
+    let mut new_btm_right = space_rect.bottom_right().clone();
+    new_btm_right.set_x(top_right_x + 400.0);
     let images: [Image; 6] =
         [widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(0.0)), //black up
          widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(1.0)), //green up
          widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(2.0)), //backspace
-         widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(3.0)), //space
+         widget::Image::new(image_id).source_rectangle(space_rect.stretch_to_point(new_top_right)
+                                                           .stretch_to_point(new_btm_right)), //space
          widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(4.0)), //enter
          widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(5.0))]; //closetab
     let letter_vec = vec![KeyButton(KeyVariant::StringHold(String::from("q"), String::from("1"))),

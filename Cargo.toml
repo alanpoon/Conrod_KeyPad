@@ -4,9 +4,9 @@ version = "0.1.0"
 authors = ["alanpoon"]
 
 [dependencies]
-conrod = { version ="0.56.0", features = ["glium","winit"]}
+conrod = { git ="https://github.com/alanpoon/conrod.git", features = ["glium","winit"]}
 conrod_derive = "0.1.0"
-cardgame_widgets = {git="https://github.com/alanpoon/cardgame_widgets.git",rev="cb212cabba21d5651b2813b414d1e2144557d963"}
+cardgame_widgets = {git="https://github.com/alanpoon/cardgame_widgets.git"}
 
 [dev-dependencies]
 image = "0.15.0"

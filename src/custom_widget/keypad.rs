@@ -6,6 +6,7 @@ use conrod::event;
 use custom_widget::keybut;
 use custom_widget::keybut::KeyButEnum;
 use custom_widget::text_edit::{Ids, Style};
+use std::cmp::min;
 #[derive(Clone,Debug,PartialEq)]
 pub enum KeyPadVariant {
     Num(usize), //1:page 1, 2:page2
@@ -56,6 +57,7 @@ pub fn render_keypad<T>(master_id: widget::Id,
     let can = ui.rect_of(master_id).unwrap();
     let w_can = can.w();
     let h_can = can.h() * 0.3;
+    let label_size = (min(w_can.floor() as i32, h_can.floor() as i32) as f32 * 0.17).floor() as u32;
     let style = style.normalize([w_can, h_can], &ui);
     let (k_hash, len) = match keypad_variant {
         &mut KeyPadVariant::Num(_) => (&meta_tuple.1, meta_tuple.1.len()),
@@ -84,15 +86,23 @@ pub fn render_keypad<T>(master_id: widget::Id,
                 match keypad_variant {
                     &mut KeyPadVariant::Letter(2) => {
                         _lstring = _lstring.to_uppercase();
-                        KeyButEnum::Flat(keybut::Button::new().label(&_lstring))
+                        KeyButEnum::Flat(keybut::Button::new()
+                                             .label_font_size(label_size)
+                                             .label(&_lstring))
                     }
-                    _ => KeyButEnum::Flat(keybut::Button::new().label(&_lstring)),
+                    _ => {
+                        KeyButEnum::Flat(keybut::Button::new()
+                                             .label_font_size(label_size)
+                                             .label(&_lstring))
+                    }
                 }
             }
             &KeyVariant::StringHold(ref _l, ref _s) => {
                 _lstring = _l.clone();
                 _sstring = _s.clone();
-                KeyButEnum::Flat(keybut::Button::new().label_with_superscript(&_lstring, &_sstring))
+                KeyButEnum::Flat(keybut::Button::new()
+                                     .label_font_size(label_size)
+                                     .label_with_superscript(&_lstring, &_sstring))
             }
             &KeyVariant::Spacebar(ref _i, _) => {
                 KeyButEnum::Image(keybut::Button::image(_i.clone()))
@@ -113,9 +123,14 @@ pub fn render_keypad<T>(master_id: widget::Id,
                                 match keypad_variant {
                                     &mut KeyPadVariant::Num(a) => {
                                         _lstring = _lv[a - 1].clone();
-                                        KeyButEnum::Flat(keybut::Button::new().label(&_lstring))
+                                        KeyButEnum::Flat(keybut::Button::new()
+                                                             .label_font_size(label_size)
+                                                             .label(&_lstring))
                                     }
-                                    _ => KeyButEnum::Flat(keybut::Button::new()),
+                                    _ => {
+                                        KeyButEnum::Flat(keybut::Button::new()
+                                                             .label_font_size(label_size))
+                                    }
                                 }
                             }
                         }
@@ -127,7 +142,9 @@ pub fn render_keypad<T>(master_id: widget::Id,
                             }
                             &ImageOrString::StringOnly(ref _l) => {
                                 _lstring = _l[0].clone();
-                                KeyButEnum::Flat(keybut::Button::new().label(&_lstring))
+                                KeyButEnum::Flat(keybut::Button::new()
+                                                     .label_font_size(label_size)
+                                                     .label(&_lstring))
                             }
                         }
                     }
@@ -136,10 +153,14 @@ pub fn render_keypad<T>(master_id: widget::Id,
             &KeyVariant::Num(ref numpad1, ref numpad2) => {
                 if let &mut KeyPadVariant::Num(1) = keypad_variant {
                     _lstring = numpad1.clone();
-                    KeyButEnum::Flat(keybut::Button::new().label(&_lstring))
+                    KeyButEnum::Flat(keybut::Button::new()
+                                         .label_font_size(label_size)
+                                         .label(&_lstring))
                 } else {
                     _lstring = numpad2.clone();
-                    KeyButEnum::Flat(keybut::Button::new().label(&_lstring))
+                    KeyButEnum::Flat(keybut::Button::new()
+                                         .label_font_size(label_size)
+                                         .label(&_lstring))
                 }
             }
 
@@ -147,7 +168,9 @@ pub fn render_keypad<T>(master_id: widget::Id,
                 match blankenum {
                     &BlankEnum::Flat => {
                         KeyButEnum::BlankFlat(_w_multipler.clone(),
-                                              keybut::Button::new().label(&""))
+                                              keybut::Button::new()
+                                                  .label_font_size(label_size)
+                                                  .label(&""))
                     }
                     &BlankEnum::Image(ref _i) => {
                         KeyButEnum::BlankImage(_w_multipler.clone(),
