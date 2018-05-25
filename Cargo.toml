@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["alanpoon"]
 
 [dependencies]
-conrod = { git ="https://github.com/alanpoon/conrod.git", features = ["glium","winit"]}
-conrod_derive = "0.1.0"
+conrod = { git ="https://github.com/PistonDevelopers/conrod.git", features = ["glium","winit"]}
+conrod_derive = { git ="https://github.com/PistonDevelopers/conrod.git"}
 cardgame_widgets = {git="https://github.com/alanpoon/cardgame_widgets.git"}
 
 [dev-dependencies]
