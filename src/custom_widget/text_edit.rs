@@ -1,18 +1,18 @@
 //! A widget for displaying and mutating multi-line text, given as a `String`.
 
-use conrod::{Color, Colorable, FontSize, Positionable, Sizeable, Widget, Ui};
-use conrod::event;
-use conrod::input;
-use conrod::position::{Align, Dimension, Point, Range, Rect, Scalar};
+use conrod_core::{Color, Colorable, FontSize, Positionable, Sizeable, Widget, Ui};
+use conrod_core::event;
+use conrod_core::input;
+use conrod_core::position::{Align, Dimension, Point, Range, Rect, Scalar};
 use std;
-use conrod::text;
-use conrod::utils;
-use conrod::widget;
-use conrod::cursor;
-use conrod::graph::Walker;
-use conrod::widget::primitive::text::Wrap;
+use conrod_core::text;
+use conrod_core::utils;
+use conrod_core::widget;
+use conrod_core::cursor;
+use conrod_core::graph::Walker;
+use conrod_core::widget::primitive::text::Wrap;
 use custom_widget::keypad::*;
-use conrod::UiCell;
+use conrod_core::UiCell;
 
 /// A widget for displaying and mutating multi-line text, given as a `String`.
 ///

@@ -1,5 +1,5 @@
-use conrod::position;
-use conrod::Rect;
+use conrod_core::position;
+use conrod_core::Rect;
 #[derive(Clone,Copy,PartialEq,Debug)]
 pub struct SpriteInfo {
     pub first: (f64, f64), //left corner of first

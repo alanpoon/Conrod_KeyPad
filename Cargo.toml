@@ -4,12 +4,19 @@ version = "0.1.0"
 authors = ["alanpoon"]
 
 [dependencies]
-conrod = { git ="https://github.com/PistonDevelopers/conrod.git", features = ["glium","winit"]}
-conrod_derive = { git ="https://github.com/PistonDevelopers/conrod.git"}
-cardgame_widgets = {git="https://github.com/alanpoon/cardgame_widgets.git"}
+conrod_core = { path ="../conrod/conrod_core"}
+conrod_derive = { path = "../conrod/conrod_derive"}
+svg = "0.5.12"
+nalgebra = "0.18"
+num = "0.2.0"
+bezier2 = "0.2.0"
+polygon2 = "0.3.0"
 
 [dev-dependencies]
 image = "0.15.0"
+conrod_glium = {path = "../conrod/backends/conrod_glium"}
+conrod_winit = {path = "../conrod/backends/conrod_winit"}
+glium = { version = "0.23" }
 
 [package.metadata.android]
 package_name = "com.github.apoon1.conrod-keypad"

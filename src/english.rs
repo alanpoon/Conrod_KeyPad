@@ -1,13 +1,13 @@
 use custom_widget::keypad::{KeyVariant, KeyPadVariant, ClosureVariant, KeyButtonTrait,
                             ImageOrString, KeyPressType, BlankEnum};
 use custom_widget::text_edit::Style;
-use conrod;
-use conrod::event;
-use conrod::event::{Text, Press, Button};
-use conrod::input::{Key, ModifierKey};
-use conrod::widget;
-use conrod::widget::primitive::image::Image;
-use conrod::widget::envelope_editor::EnvelopePoint;
+use conrod_core;
+use conrod_core::event;
+use conrod_core::event::{Text, Press, Button};
+use conrod_core::input::{Key, ModifierKey};
+use conrod_core::widget;
+use conrod_core::widget::primitive::image::Image;
+use conrod_core::widget::envelope_editor::EnvelopePoint;
 use sprite::SpriteInfo;
 pub struct KeyButton(KeyVariant);
 impl KeyButtonTrait for KeyButton {
@@ -40,13 +40,13 @@ impl KeyButtonTrait for KeyButton {
                     &mut KeyPadVariant::Letter(2) => {
                         tstring.push_str(s);
                         tstring = tstring.to_uppercase();
-                        events.push(conrod::event::Widget::Text(Text {
+                        events.push(conrod_core::event::Widget::Text(Text {
                                                                     string: tstring,
                                                                     modifiers: ModifierKey::empty(),
                                                                 }));
                     }
                     _ => {
-                        events.push(conrod::event::Widget::Text(Text {
+                        events.push(conrod_core::event::Widget::Text(Text {
                                                                     string: s.clone(),
                                                                     modifiers: ModifierKey::empty(),
                                                                 }));
@@ -56,13 +56,13 @@ impl KeyButtonTrait for KeyButton {
             &KeyVariant::Num(ref s1, ref s2) => {
                 match keypadvariant {
                     &mut KeyPadVariant::Num(1) => {
-                        events.push(conrod::event::Widget::Text(Text {
+                        events.push(conrod_core::event::Widget::Text(Text {
                                                                     string: s1.clone(),
                                                                     modifiers: ModifierKey::empty(),
                                                                 }));
                     }
                     &mut KeyPadVariant::Num(2) => {
-                        events.push(conrod::event::Widget::Text(Text {
+                        events.push(conrod_core::event::Widget::Text(Text {
                                                                     string: s2.clone(),
                                                                     modifiers: ModifierKey::empty(),
                                                                 }));
@@ -71,7 +71,7 @@ impl KeyButtonTrait for KeyButton {
                 }
             }
             &KeyVariant::Spacebar(_, ref _l) => {
-                events.push(conrod::event::Widget::Text(Text {
+                events.push(conrod_core::event::Widget::Text(Text {
                                                             string: _l.clone(),
                                                             modifiers: ModifierKey::empty(),
                                                         }));
@@ -79,13 +79,13 @@ impl KeyButtonTrait for KeyButton {
             &KeyVariant::StringHold(ref s1, ref s2) => {
                 match keypresstype {
                     KeyPressType::Press => {
-                        events.push(conrod::event::Widget::Text(Text {
+                        events.push(conrod_core::event::Widget::Text(Text {
                                                                     string: s1.clone(),
                                                                     modifiers: ModifierKey::empty(),
                                                                 }));
                     }
                     KeyPressType::Hold => {
-                        events.push(conrod::event::Widget::Text(Text {
+                        events.push(conrod_core::event::Widget::Text(Text {
                                                                     string: s2.clone(),
                                                                     modifiers: ModifierKey::empty(),
                                                                 }));
@@ -99,7 +99,7 @@ impl KeyButtonTrait for KeyButton {
         }
     }
 }
-pub fn populate(image_id: conrod::image::Id,
+pub fn populate(image_id: conrod_core::image::Id,
                 spriteinfo: SpriteInfo)
                 -> (Vec<KeyButton>, Vec<KeyButton>, KeyButton) {
     //(letter_vec,number_vec,image_button_for_closetab)
@@ -155,13 +155,13 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::StringOnly(String::from("m"))),
     //backspace
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[2],images[2]])),Box::new(|events,_|{
-        events.push(conrod::event::Widget::Press(Press{button:Button::Keyboard(Key::Backspace),modifiers:ModifierKey::empty()}));
+        events.push(conrod_core::event::Widget::Press(Press{button:Button::Keyboard(Key::Backspace),modifiers:ModifierKey::empty()}));
         }))), //backspace
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("?123"),String::from("?123")])),Box::new(|_,kpv|{*kpv = KeyPadVariant::Num(1);}))),
     KeyButton(KeyVariant::Spacebar(images[3],String::from(" "))),
     KeyButton(KeyVariant::StringOnly(String::from("."))),
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|events,_|{
-          events.push(conrod::event::Widget::Press(Press{button:Button::Keyboard(Key::Return),modifiers:ModifierKey::empty()}));
+          events.push(conrod_core::event::Widget::Press(Press{button:Button::Keyboard(Key::Return),modifiers:ModifierKey::empty()}));
     })))
     ];
 
@@ -206,13 +206,13 @@ pub fn populate(image_id: conrod::image::Id,
     KeyButton(KeyVariant::Num(String::from(";"),String::from("®"))),
     KeyButton(KeyVariant::Num(String::from(","),String::from("©"))),
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[2],images[2]])),Box::new(|events,_|{
-        events.push(conrod::event::Widget::Press(Press{button:Button::Keyboard(Key::Backspace),modifiers:ModifierKey::empty()}));
+        events.push(conrod_core::event::Widget::Press(Press{button:Button::Keyboard(Key::Backspace),modifiers:ModifierKey::empty()}));
          }))), //backspace
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("abc"),String::from("abc")])),Box::new(|_,kpv|{*kpv=KeyPadVariant::Num(1);}))),
     KeyButton(KeyVariant::Spacebar(images[3],String::from(" "))),
     KeyButton(KeyVariant::StringOnly(String::from("."))),
     KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|events,_|{
-           events.push(conrod::event::Widget::Press(Press{button:Button::Keyboard(Key::Return),modifiers:ModifierKey::empty()}));
+           events.push(conrod_core::event::Widget::Press(Press{button:Button::Keyboard(Key::Return),modifiers:ModifierKey::empty()}));
         }))) //new line
         
         ];

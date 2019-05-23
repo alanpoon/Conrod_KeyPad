@@ -1,11 +1,17 @@
 #[macro_use]
-extern crate conrod;
+extern crate conrod_core;
 #[macro_use]
 extern crate conrod_derive;
-extern crate cardgame_widgets;
+extern crate svg;
+extern crate nalgebra;
+extern crate num;
+extern crate bezier2;
+extern crate polygon2;
+
 pub mod sprite;
 pub mod english;
 pub mod custom_widget;
+pub mod load_svg;
 #[cfg(test)]
 mod tests {
     #[test]

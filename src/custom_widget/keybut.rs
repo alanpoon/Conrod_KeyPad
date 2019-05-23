@@ -1,11 +1,11 @@
 //! The `Button` widget and related items.
 
-use conrod::{Color, color, Colorable, FontSize, Borderable, Labelable, Positionable, Sizeable,
+use conrod_core::{Color, color, Colorable, FontSize, Borderable, Labelable, Positionable, Sizeable,
              UiCell, Widget, text, event, input};
-use conrod::widget::primitive::image::Image;
-use conrod::position::{self, Align, Rect, Scalar};
-use conrod::widget::envelope_editor::EnvelopePoint;
-use conrod::widget;
+use conrod_core::widget::primitive::image::Image;
+use conrod_core::position::{self, Align, Rect, Scalar};
+use conrod_core::widget::envelope_editor::EnvelopePoint;
+use conrod_core::widget;
 use std::time::{Duration, Instant};
 pub enum KeyButEnum<'a> {
     Flat(Button<'a, Flat>),

@@ -1,9 +1,8 @@
-use conrod::{widget, Labelable, Positionable, Sizeable, Widget, color, Borderable};
-use cardgame_widgets::custom_widget::wrap_list;
-use conrod::widget::primitive::image::Image;
-use conrod::UiCell;
-use conrod::event;
-use custom_widget::keybut;
+use conrod_core::{widget, Labelable, Positionable, Sizeable, Widget, color, Borderable};
+use conrod_core::widget::primitive::image::Image;
+use conrod_core::UiCell;
+use conrod_core::event;
+use custom_widget::{keybut,wrap_list};
 use custom_widget::keybut::KeyButEnum;
 use custom_widget::text_edit::{Ids, Style};
 use std::cmp::min;
