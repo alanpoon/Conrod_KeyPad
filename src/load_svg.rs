@@ -20,7 +20,7 @@ impl SvgKeypad{
         let arrow_full_up = include_str!("arrow_full_up.svg").to_owned();
         let delete = include_str!("a_delete.svg").to_owned();
         let double_arrow_down = include_str!("a_double-arrow-down.svg").to_owned();
-        let enter = include_str!("a_delete.1.svg").to_owned();
+        let enter = include_str!("a_space.svg").to_owned();
 
         SvgKeypad{
             //arrow_full_up: convert(Parser::new(arrow_full_up),"arrow_full_up.svg"),
@@ -51,53 +51,50 @@ fn convert<'a>(parser:Parser<'a>,k:&'a str)->(Vec<WidgetType>,[f64;2]){
             },
             Event::Tag(Path, _, attributes) => {
                 let data = attributes.get("d").unwrap();
+                let stroke_boolean = if attributes.get("style").unwrap().contains("stroke"){
+                    true
+                }else{
+                    false
+                };
                 let data = Data::parse(data).unwrap();
                 let mut current_p:WidgetType = WidgetType::None;
+                let mut last_control_point:Option<[f64;2]> = None;
                 for command in data.iter() {
                     match command {
                         Command::Close=>{
-                            println!("close");
-                            if let WidgetType::PointPath(subject,None) = &mut current_p{
-                                if subject.len()>3{
-                                    let a = subject.get(0).unwrap();
-                                    let b = subject.get(1).unwrap();
-                                    let c = subject.get(2).unwrap();
-                                    if !is_triangle_convex(a,b,c){
-                                        subject.reverse();
+                            if let WidgetType::PointPath(subject,None,stroke_boolean) = &mut current_p{
+                                //https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
+
+                                let clockwise = subject.iter().fold((0f64,[0f64;2]),|(sum,prev),val|{
+                                    let next = val;
+                                    let mut edge = (val[0]-prev[0])*(val[1]+prev[1]);
+                                    if prev ==[0f64;2]{
+                                        edge = 0.0;
                                     }
+                                    return (sum+edge,val.clone());
+                                } );
+                                if clockwise.0 > 0.0{ //clockwise
+                                    subject.reverse();
                                 }
-                                
-                                let m_cir:Vec<[f64;2]> = subject.iter().map(|x|{[x[0],x[1]]}).collect::<Vec<[f64;2]>>();
-                                vec_widget.push(WidgetType::PointPath(m_cir));
+                                vec_widget.push(WidgetType::PointPath(subject.clone(),None,stroke_boolean.clone()));
                                 current_p = WidgetType::None;
-                            } else if let WidgetType::PointPath(subject,Some(whiteindex)) = &mut current_p{
-                                println!("ty {:?}",subject.len());
-                                if subject.len()>3{
-                                    let a = subject.get(0).unwrap();
-                                    let b = subject.get(1).unwrap();
-                                    let c = subject.get(2).unwrap();
-                                    if !is_triangle_convex(a,b,c){
-                                        subject.reverse();
-                                    }
-                                }
-                                
-                                let m_cir:Vec<[f64;2]> = subject.iter().map(|x|{[x[0],x[1]]}).collect::<Vec<[f64;2]>>();
-                                vec_widget.push(WidgetType::PointPath(m_cir,whiteindex.clone()));
+                            } else if let WidgetType::PointPath(subject,Some(whiteindex),sb) = &mut current_p{
+                                vec_widget.push(WidgetType::PointPath(subject.clone(),Some(whiteindex.clone()),sb.clone()));
                                 current_p = WidgetType::None;
                             }
                         },
                         Command::Move(_position,_p) => {
                             let k = _p.clone();
                             if let WidgetType::None = current_p{
-                                current_p = WidgetType::PointPath(vec![[k[0] as f64,k[1] as f64]]);
-                            } else if let WidgetType::PointPath(p) = &mut current_p{
+                                current_p = WidgetType::PointPath(vec![[k[0] as f64,k[1] as f64]],None,stroke_boolean.clone());
+                            } else if let WidgetType::PointPath(p,_,_) = &mut current_p{
                                 p.push([k[0] as f64,k[1] as f64]);
-                                current_p = WidgetType::PointPathWhite(p.clone(),p.len());
+                                current_p = WidgetType::PointPath(p.clone(),Some(p.len()),stroke_boolean.clone());
                             }
                         },
                         Command::Line(_position,_p) => {
                             let k = _p.clone();
-                            if let WidgetType::PointPath(t) = &mut current_p{
+                            if let WidgetType::PointPath(t,_,_) = &mut current_p{
                                 
                                 let mut count =0;
                                 let mut store= vec![];
@@ -108,7 +105,6 @@ fn convert<'a>(parser:Parser<'a>,k:&'a str)->(Vec<WidgetType>,[f64;2]){
                                     }else{
                                         store.push([x as f64,mk.clone() as f64]);
                                     }
-
                                     count+=1;
                                 }
                                 for j in store{
@@ -120,40 +116,43 @@ fn convert<'a>(parser:Parser<'a>,k:&'a str)->(Vec<WidgetType>,[f64;2]){
                                     };
                                     t.push(new_point);
                                 }
-                                
                             }
                         },
                         
                         Command::HorizontalLine(_position,_p) => {
                             let k = _p.clone();
                             
-                            if let WidgetType::PointPath(t) = &mut current_p{
+                            if let WidgetType::PointPath(t,_,_) = &mut current_p{
                                 let last= t.get(t.len()-1).unwrap().clone();
-                                let new_x = if let Position::Absolute = _position{
-                                    k[0] as f64
-                                }else{
-                                    k[0] as f64 +last[0]
-                                };
-                                t.push([new_x,last[1]] );
+                                for ki in k.iter() {
+                                    let new_x = if let Position::Absolute = _position{
+                                        ki.clone() as f64
+                                    }else{
+                                        ki.clone() as f64 +last[0]
+                                    };
+                                    t.push([new_x,last[1]] );
+                                }
                             }
-
                         },
                         Command::VerticalLine(_position,_p) => {
                             let k = _p.clone();
                             
-                            if let WidgetType::PointPath(t) = &mut current_p{
+                            if let WidgetType::PointPath(t,_,_) = &mut current_p{
                                 let last= t.get(t.len()-1).unwrap().clone();
-                                let new_y = if let Position::Absolute = _position{
-                                        k[0] as f64
-                                    }else{
-                                        k[0] as f64+last[1]
-                                    };
-                                t.push([last[0],new_y] );
+                                for ki in k.iter() {
+                                    let new_y = if let Position::Absolute = _position{
+                                            ki.clone() as f64
+                                        }else{
+                                            ki.clone() as f64+last[1]
+                                        };
+                                    
+                                    t.push([last[0],new_y] );
+                                }
                             }
                         },
                         Command::QuadraticCurve(_position,_p) => {
                             let k = _p.clone();
-                            if let WidgetType::PointPath(t) = &mut current_p{
+                            if let WidgetType::PointPath(t,_,_) = &mut current_p{
                                 let last= t.get(t.len()-1).unwrap().clone();
                                 t.push([last[0],k[0] as f64] );
                             }
@@ -173,7 +172,7 @@ fn convert<'a>(parser:Parser<'a>,k:&'a str)->(Vec<WidgetType>,[f64;2]){
                             };
                             
                             let mut rxry = [rx as f64,ry as f64];
-                            if let WidgetType::PointPath(t) = &mut current_p{
+                            if let WidgetType::PointPath(t,_,_) = &mut current_p{
                                 let last= t.get(t.len()-1).unwrap().clone();
                                 let mut new_point=[0.0,0.0];
                                 if let Position::Absolute = _position{
@@ -193,8 +192,7 @@ fn convert<'a>(parser:Parser<'a>,k:&'a str)->(Vec<WidgetType>,[f64;2]){
                         },
                         Command::CubicCurve(_position,_p)=>{
                             let k = _p.clone();
-                            
-                            if let WidgetType::PointPath(t) = &mut current_p{
+                            if let WidgetType::PointPath(t,_,_) = &mut current_p{
                                 let last= t.get(t.len()-1).unwrap().clone();
                                 let mut count =0;
                                 let mut store= vec![];
@@ -216,13 +214,44 @@ fn convert<'a>(parser:Parser<'a>,k:&'a str)->(Vec<WidgetType>,[f64;2]){
                                     }
                                     count+=1;
                                 }
-
+                                last_control_point = Some(store.get(1).unwrap().clone());
                                 let points = draw_cubic(store);
                                 for p in points{
                                     t.push(p);
                                 }   
                             }
 
+                        },
+                        Command::SmoothCubicCurve(position,_p)=>{
+                            let k = _p.clone();
+                            if let WidgetType::PointPath(t,_,_) = &mut current_p{
+                                let last= t.get(t.len()-1).unwrap().clone();
+                                let mut count =0;
+                                let mut store= vec![];
+                                let mut x:f64=0.0;
+                                for mk in k.iter(){
+                                    if count %2==0{
+                                        x = if let Position::Absolute = position{
+                                            mk.clone() as f64
+                                        }else{
+                                            last[0] +mk.clone() as f64
+                                        };
+                                    }else{
+                                        let o = if let Position::Absolute = position{
+                                            mk.clone() as f64
+                                        }else{
+                                            last[1] +mk.clone() as f64
+                                        };
+                                        store.push([x,o]);
+                                    }
+                                    count+=1;
+                                }
+
+                                let points = draw_smooth_cubic(last_control_point.clone(),store);
+                                for p in points{
+                                    t.push(p);
+                                }   
+                            }
                         },
                         _ => {}
                     }
@@ -272,10 +301,7 @@ fn endpoint_to_center_arc_params(p1:[f64;2],p2:[f64;2],r_:&mut [f64;2],x_angle:f
     let cyp = - q * r_y * x1p / r_x;
     let cx = x_angle.cos()*cxp - x_angle.sin()*cyp + (p1[0] + p2[0])/2.0;
     let cy = x_angle.sin()*cxp + x_angle.cos()*cyp + (p1[1] + p2[1])/2.0;
-    //(F.6.5.5)
     let theta = svg_angle( 1.0,0.0, (x1p-cxp) / r_x, (y1p - cyp)/r_y );
-    //let theta = 0.0;
-    //(F.6.5.6)
     let mut delta = svg_angle(
         (x1p - cxp)/r_x, (y1p - cyp)/r_y,
         (-x1p - cxp)/r_x, (-y1p-cyp)/r_y);
@@ -313,7 +339,8 @@ pub fn is_triangle_convex(a: &[f64; 2], b: &[f64; 2], c: &[f64; 2]) -> bool
 fn draw_cubic(control:Vec<[f64;2]>)->Vec<[f64;2]>{
     //https://community.khronos.org/t/how-to-draw-a-bezier-curve-through-its-control-points/21804
     let num_points = 5;
-    let dt = (control.len() - 1) as f64 /(num_points-1) as f64;
+    //let dt = (control.len() ) as f64 /(num_points) as f64;
+    let dt = 1.0 /(num_points) as f64;
     let p1 = control.get(0).unwrap();
     let p2 = control.get(1).unwrap();
     let p3 = control.get(2).unwrap();
@@ -324,4 +351,24 @@ fn draw_cubic(control:Vec<[f64;2]>)->Vec<[f64;2]>{
         points.push(c);
     }
     return points;
+}
+fn draw_smooth_cubic(last_control_pt:Option<[f64;2]>,control:Vec<[f64;2]>)->Vec<[f64;2]>{
+    let num_points = 5;
+    let dt = 1.0 /(num_points-1) as f64;
+    let p2 = control.get(0).unwrap();
+    let p1 = if let Some(k) = last_control_pt{
+        k
+    }else{
+        p2.clone()
+    };
+    let p3 = control.get(1).unwrap();
+
+    let mut points =vec![]; 
+    for i in 0..num_points{
+        let t = i as f64 *dt;
+        let c= cubic(&mut [0.0,0.0],&p1,&p2,&p3,&t).clone();
+        points.push(c);
+    }
+    return points;
+
 }

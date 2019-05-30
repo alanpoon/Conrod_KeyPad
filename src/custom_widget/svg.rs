@@ -4,7 +4,7 @@ use conrod_core::{widget, Positionable, Widget, Color, Colorable,color, Sizeable
 #[derive(Clone)]
 pub enum WidgetType{
     Polygon(Vec<[f64;2]>),
-    PointPath(Vec<[f64;2]>,Option<usize>),
+    PointPath(Vec<[f64;2]>,Option<usize>,bool),
     None
 }
 #[derive(WidgetCommon)]
@@ -84,27 +84,31 @@ impl<'a> Widget for SvgWidget<'a> {
         for (shape,&ii) in shapes.iter().zip(state.ids.items.iter())
         {
             match shape{
-                WidgetType::PointPathWhite(subject,white_points_index)=>{
+                WidgetType::PointPath(subject,Some(white_points_index),stroke_boolean)=>{
                     let m:Vec<[f64;2]> = subject.clone().iter().map(|x|{
                         [x[0]*scale[0],x[1]*scale[1]]
                     }).collect();
-                    widget::Polygon::centred_fill(m)
+                    if !stroke_boolean{
+                        widget::Polygon::centred_fill(m)
                         .middle_of(id)
                         .reflect()
                         .white_points_index(white_points_index.clone())
                         .wh_of(id)
                         .set(ii,ui);
+                    }else{
+                        widget::PointPath::centred(m).middle_of(id).wh_of(id).set(ii, ui);
+                    }
+                    
                 }
-                WidgetType::PointPath(k)=>{
+                WidgetType::PointPath(k,None,stroke_boolean)=>{
                     let m:Vec<[f64;2]> = k.clone().iter().map(|x|{
                         [x[0]*scale[0],x[1]*scale[1]]
                     }).collect();
-                    
                     widget::Polygon::centred_fill(m)
-                    .middle_of(id)
-                    .reflect()
-                    .wh_of(id)
-                    .set(ii,ui);
+                        .middle_of(id)
+                        .reflect()
+                        .wh_of(id)
+                        .set(ii,ui);
                 },
                 
                 WidgetType::Polygon(k)=>{
