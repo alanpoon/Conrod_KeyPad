@@ -10,7 +10,8 @@ svg = "0.5.12"
 nalgebra = "0.18"
 num = "0.2.0"
 bezier2 = "0.2.0"
-polygon2 = "0.3.0"
+polygon2 = {path = "../rs-polygon2"}
+rtriangulate = "0.3.1"
 
 [dev-dependencies]
 image = "0.15.0"

@@ -35,7 +35,7 @@ impl SvgKeypad{
     }
 }
 
-fn convert<'a>(parser:Parser<'a>,k:&'a str)->(Vec<WidgetType>,[f64;2]){
+fn convert<'a>(parser:Parser<'a>,_k:&'a str)->(Vec<WidgetType>,[f64;2]){
     let mut vec_widget= vec![];
     let mut svgheight:Option<f64> = None;
     let mut svgwidth:Option<f64> = None;
@@ -66,7 +66,6 @@ fn convert<'a>(parser:Parser<'a>,k:&'a str)->(Vec<WidgetType>,[f64;2]){
                                 //https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
 
                                 let clockwise = subject.iter().fold((0f64,[0f64;2]),|(sum,prev),val|{
-                                    let next = val;
                                     let mut edge = (val[0]-prev[0])*(val[1]+prev[1]);
                                     if prev ==[0f64;2]{
                                         edge = 0.0;

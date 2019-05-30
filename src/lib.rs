@@ -7,6 +7,7 @@ extern crate nalgebra;
 extern crate num;
 extern crate bezier2;
 extern crate polygon2;
+extern crate rtriangulate;
 
 pub mod sprite;
 pub mod english;
