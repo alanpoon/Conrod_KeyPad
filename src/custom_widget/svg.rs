@@ -74,10 +74,11 @@ impl<'a> Widget for SvgWidget<'a> {
     /// update.
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
         let widget::UpdateArgs { id, state, rect, ui, .. } = args;
-        let SvgWidget{shapes,svgdimension,..} = self;
+        let SvgWidget{shapes,svgdimension,style,..} = self;
         let dim = rect.dim();
         let scale  = [dim[0]/svgdimension[0],dim[1]/svgdimension[1]];
         let num = shapes.len();
+        let widget_color = style.color(&ui.theme);
         if state.ids.items.len() < num {
             let id_gen = &mut ui.widget_id_generator();
             state.update(|state| state.ids.items.resize(num, id_gen));
@@ -91,7 +92,7 @@ impl<'a> Widget for SvgWidget<'a> {
                     }).collect();
                     if !stroke_boolean{
                         let t = triangles(m,Some(white_points_index.clone()),stroke_boolean.clone());
-                        widget::Triangles::single_color(color::WHITE,t)
+                        widget::Triangles::single_color(widget_color,t)
                         .centre_points_to_bounding_rect()
                         .middle_of(id)
                         .wh_of(id)
@@ -107,7 +108,7 @@ impl<'a> Widget for SvgWidget<'a> {
                     }).collect();
                     //there is reflect
                     let t = triangles(m,None,stroke_boolean.clone());
-                    widget::Triangles::single_color(color::WHITE,t)
+                    widget::Triangles::single_color(widget_color,t)
                         .centre_points_to_bounding_rect()
                         .middle_of(id)
                         .wh_of(id)
@@ -119,7 +120,7 @@ impl<'a> Widget for SvgWidget<'a> {
                         [x[0]*scale[0],x[1]*scale[1]]
                     }).collect();
                     let t = triangles(m,None,false);
-                    widget::Triangles::single_color(color::WHITE,t)
+                    widget::Triangles::single_color(widget_color,t)
                         .centre_points_to_bounding_rect()
                         .middle_of(id)
                         .wh_of(id)
