@@ -2,16 +2,17 @@
 
 use conrod_core::{Color, color, Colorable, FontSize, Borderable, Labelable, Positionable, Sizeable,
              UiCell, Widget, text, event, input};
-use conrod_core::widget::primitive::image::Image;
 use conrod_core::position::{self, Align, Rect, Scalar};
 use conrod_core::widget::envelope_editor::EnvelopePoint;
 use conrod_core::widget;
 use std::time::{Duration, Instant};
+use custom_widget::svg::{SvgWidget,WidgetType,SvgInfo};
+
 pub enum KeyButEnum<'a> {
     Flat(Button<'a, Flat>),
-    Image(Button<'a, widget::Image>),
+    Svg(Button<'a, SvgWidget>),
     BlankFlat(f64, Button<'a, Flat>), //width mutliplier
-    BlankImage(f64, Button<'a, widget::Image>),
+    BlankSvg(f64, Button<'a, SvgWidget>),
 }
 
 /// A pressable button widget whose reaction is triggered upon release.
@@ -21,7 +22,7 @@ pub struct Button<'a, S> {
     common: widget::CommonBuilder,
     maybe_label: Option<&'a str>,
     maybe_label_with_superscript: Option<(&'a str, &'a str)>,
-    /// Whether the `Button` is a `Flat` color or an `Image`.
+    /// Whether the `Button` is a `Flat` color or an `SvgWidget`.
     pub show: S,
     /// Unique styling parameters for the Button.
     pub style: Style,
@@ -218,13 +219,13 @@ impl<'a, S> Button<'a, S> {
         pub enabled { enabled = bool }
     }
 }
-impl<'a> Button<'a, Image> {
+impl<'a> Button<'a, SvgWidget> {
     /// Begin building a button displaying the given `Image` on top.
-    pub fn image(img: Image) -> Self {
-        Self::new_internal(img)
+    pub fn svg(svg: SvgWidget) -> Self {
+        Self::new_internal(svg)
     }
 }
-impl<'a> Widget for Button<'a, Image> {
+impl<'a> Widget for Button<'a, SvgWidget> {
     type State = ImageState;
     type Style = Style;
     type Event = TimesClicked;
@@ -254,10 +255,12 @@ impl<'a> Widget for Button<'a, Image> {
             }
             _ => {}
         }
-        // Instantiate the image.
+        // Instantiate the svg.
         let widget_image = show;
         let (x, y, w, h) = rect.x_y_w_h();
         let image = widget_image.x_y(x, y)
+           // .top_right_with_margins_on(id, h * 0.2, w * 0.2)
+           // .w_h(w * 0.6, h * 0.6)
             .top_right_with_margins_on(id, h * 0.2, w * 0.2)
             .w_h(w * 0.6, h * 0.6)
             .parent(id)

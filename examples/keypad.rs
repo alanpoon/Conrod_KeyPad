@@ -52,13 +52,7 @@ fn main() {
     // construct our `Ui`.
     let mut ui = conrod_core::UiBuilder::new([WIN_W as f64, WIN_H as f64]).build();
     ui.fonts.insert(support::assets::load_font("fonts/NotoSans/NotoSans-Regular.ttf"));
-    let rust_logo = load_image(&display.0, "images/rust.png");
-    let keypad_png = load_image(&display.0, "images/keypad.png");
-    //  let (w, h) = (rust_logo.get_width(), rust_logo.get_height().unwrap());
     let mut image_map: conrod_core::image::Map<glium::texture::Texture2d> = conrod_core::image::Map::new();
-    let rust_logo = image_map.insert(rust_logo);
-    let (w, h) = (keypad_png.get_width(), keypad_png.get_height().unwrap());
-    let keypad_png = image_map.insert(keypad_png);
     let events_loop_proxy = events_loop.create_proxy();
     let mut ids = Ids::new(ui.widget_id_generator());
     let mut demo_text_edit = "Click here !".to_owned();
@@ -69,7 +63,7 @@ fn main() {
     let mut old_captured_event: Option<ConrodMessage> = None;
     let mut captured_event: Option<ConrodMessage> = None;
     let sixteen_ms = std::time::Duration::from_millis(100);
-    let english_tuple = english::populate(keypad_png, sprite::get_spriteinfo());
+    let english_tuple = english::populate();
     'render: loop {
         let mut to_break = false;
         let mut to_continue = false;

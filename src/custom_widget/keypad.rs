@@ -1,9 +1,11 @@
-use conrod_core::{widget, Labelable, Positionable, Sizeable, Widget, color, Borderable};
-use conrod_core::widget::primitive::image::Image;
+use conrod_core::{widget, Labelable, Positionable, Sizeable, Widget, color, Borderable, Colorable};
+use conrod_core::color::Color;
 use conrod_core::UiCell;
 use conrod_core::event;
 use custom_widget::{keybut,wrap_list};
+use load_svg::SvgKeypad;
 use custom_widget::keybut::KeyButEnum;
+use custom_widget::svg::{SvgWidget,SvgInfo};
 use custom_widget::text_edit::{Ids, Style};
 use std::cmp::min;
 #[derive(Clone,Debug,PartialEq)]
@@ -18,7 +20,7 @@ pub enum KeyPressType {
 }
 pub enum BlankEnum {
     Flat,
-    Image(widget::Image),
+    Svg(SvgInfo),
 }
 pub enum KeyVariant {
     Blank(f64, BlankEnum), //spacing multiply by width, used as spacing, KeyButEnum needs to be normalize
@@ -26,15 +28,15 @@ pub enum KeyVariant {
     StringHold(String, String),
     Closure(ClosureVariant, Box<Fn(&mut Vec<event::Widget>, &mut KeyPadVariant)>),
     Num(String, String),
-    Spacebar(Image, String),
+    Spacebar(SvgInfo, String),
 }
-pub enum ImageOrString {
-    Image([Image; 2]),
+pub enum SvgOrString {
+    Svg(SvgInfo,Color,Color),
     StringOnly([String; 2]),
 }
 pub enum ClosureVariant {
-    EdgeRow3(ImageOrString),
-    EdgeRow4(ImageOrString),
+    EdgeRow3(SvgOrString),
+    EdgeRow4(SvgOrString),
 }
 
 pub trait KeyButtonTrait {
@@ -104,21 +106,26 @@ pub fn render_keypad<T>(master_id: widget::Id,
                                      .label_with_superscript(&_lstring, &_sstring))
             }
             &KeyVariant::Spacebar(ref _i, _) => {
-                KeyButEnum::Image(keybut::Button::image(_i.clone()))
+                let svg_widget = SvgWidget::new(_i.clone()).color(color::BLACK);
+                KeyButEnum::Svg(keybut::Button::svg(svg_widget))
             }
             &KeyVariant::Closure(ref _cvariant, _) => {
                 match _cvariant {
                     &ClosureVariant::EdgeRow3(ref _i_or_s) => {
                         match _i_or_s {
-                            &ImageOrString::Image(ref _iv) => {
+                            &SvgOrString::Svg(ref _iv,color1,color2) => {
                                 match keypad_variant {
                                     &mut KeyPadVariant::Letter(a) => {
-                                        KeyButEnum::Image(keybut::Button::image(_iv[a - 1].clone()))
+                                        let svg_widget = SvgWidget::new(_iv.clone()).color(color2);
+                                        KeyButEnum::Svg(keybut::Button::svg(svg_widget))
                                     }
-                                    _ => KeyButEnum::Image(keybut::Button::image(_iv[0].clone())),
+                                    _ => {
+                                        let svg_widget = SvgWidget::new(_iv.clone()).color(color1);
+                                        KeyButEnum::Svg(keybut::Button::svg(svg_widget))
+                                    },
                                 }
                             }
-                            &ImageOrString::StringOnly(ref _lv) => {
+                            &SvgOrString::StringOnly(ref _lv) => {
                                 match keypad_variant {
                                     &mut KeyPadVariant::Num(a) => {
                                         _lstring = _lv[a - 1].clone();
@@ -136,10 +143,11 @@ pub fn render_keypad<T>(master_id: widget::Id,
                     }
                     &ClosureVariant::EdgeRow4(ref _i_or_s) => {
                         match _i_or_s {
-                            &ImageOrString::Image(ref _iv) => {
-                                KeyButEnum::Image(keybut::Button::image(_iv[0].clone()))
+                            &SvgOrString::Svg(ref _iv,color1,_) => {
+                                let svg_widget = SvgWidget::new(_iv.clone()).color(color1);
+                                KeyButEnum::Svg(keybut::Button::svg(svg_widget))
                             }
-                            &ImageOrString::StringOnly(ref _l) => {
+                            &SvgOrString::StringOnly(ref _l) => {
                                 _lstring = _l[0].clone();
                                 KeyButEnum::Flat(keybut::Button::new()
                                                      .label_font_size(label_size)
@@ -171,9 +179,10 @@ pub fn render_keypad<T>(master_id: widget::Id,
                                                   .label_font_size(label_size)
                                                   .label(&""))
                     }
-                    &BlankEnum::Image(ref _i) => {
-                        KeyButEnum::BlankImage(_w_multipler.clone(),
-                                               keybut::Button::image(_i.clone()))
+                    &BlankEnum::Svg(ref _i) => {
+                        let svg_widget = SvgWidget::new(_i.clone()).color(color::BLACK);
+                        KeyButEnum::BlankSvg(_w_multipler.clone(),
+                                               keybut::Button::svg(svg_widget))
                     }
                 }
             }
@@ -189,7 +198,7 @@ pub fn render_keypad<T>(master_id: widget::Id,
                     k_h.process(events, keypad_variant, KeyPressType::Press);
                 }
             }
-            KeyButEnum::Image(j) => {
+            KeyButEnum::Svg(j) => {
                 let jj = j.wh(k_h.dimension(style)).border_color(color::BLACK);
                 let jk = item.set(jj, k_h.dimension(style)[0], ui);
                 if jk.clone().was_hold() {
@@ -202,7 +211,7 @@ pub fn render_keypad<T>(master_id: widget::Id,
             KeyButEnum::BlankFlat(_w_multipler, j) => {
                 item.set(j, k_h.dimension(style)[0] * _w_multipler, ui);
             }
-            KeyButEnum::BlankImage(_w_multipler, j) => {
+            KeyButEnum::BlankSvg(_w_multipler, j) => {
                 let jj = j.w(k_h.dimension(style)[0] * _w_multipler).h(k_h.dimension(style)[1]);
                 item.set(jj, k_h.dimension(style)[0] * _w_multipler, ui);
             }
@@ -212,8 +221,9 @@ pub fn render_keypad<T>(master_id: widget::Id,
     if len > 0 {
         if let &KeyVariant::Closure(ref _cvariant, ref _closure) = meta_tuple.2.get_variant() {
             if let &ClosureVariant::EdgeRow3(ref _i_or_s) = _cvariant {
-                if let &ImageOrString::Image(ref _ia) = _i_or_s {
-                    let jj = keybut::Button::image(_ia[0].clone())
+                if let &SvgOrString::Svg(ref _ia,color1,_color2) = _i_or_s {
+                    let svg_widget = SvgWidget::new(_ia.clone()).color(color1);
+                    let jj = keybut::Button::svg(svg_widget)
                         .wh(meta_tuple.2.dimension(style))
                         .up_from(ids.keyboard_canvas, 0.0)
                         .set(ids.close_tab, ui);

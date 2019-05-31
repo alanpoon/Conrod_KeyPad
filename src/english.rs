@@ -1,14 +1,12 @@
 use custom_widget::keypad::{KeyVariant, KeyPadVariant, ClosureVariant, KeyButtonTrait,
-                            ImageOrString, KeyPressType, BlankEnum};
+                            SvgOrString, KeyPressType, BlankEnum};
 use custom_widget::text_edit::Style;
 use conrod_core;
-use conrod_core::event;
+use conrod_core::{widget,color,event};
 use conrod_core::event::{Text, Press, Button};
 use conrod_core::input::{Key, ModifierKey};
-use conrod_core::widget;
-use conrod_core::widget::primitive::image::Image;
 use conrod_core::widget::envelope_editor::EnvelopePoint;
-use sprite::SpriteInfo;
+use load_svg::SvgKeypad;
 pub struct KeyButton(KeyVariant);
 impl KeyButtonTrait for KeyButton {
     fn dimension(&self, style: Style) -> [f64; 2] {
@@ -99,24 +97,9 @@ impl KeyButtonTrait for KeyButton {
         }
     }
 }
-pub fn populate(image_id: conrod_core::image::Id,
-                spriteinfo: SpriteInfo)
+pub fn populate()
                 -> (Vec<KeyButton>, Vec<KeyButton>, KeyButton) {
-    //(letter_vec,number_vec,image_button_for_closetab)
-    let space_rect = spriteinfo.src_rect(6.0);
-    let top_right_x = space_rect.top_right().clone().get_x();
-    let mut new_top_right = space_rect.top_right().clone();
-    new_top_right.set_x(top_right_x + 400.0);
-    let mut new_btm_right = space_rect.bottom_right().clone();
-    new_btm_right.set_x(top_right_x + 400.0);
-    let images: [Image; 6] =
-        [widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(0.0)), //black up
-         widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(1.0)), //green up
-         widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(2.0)), //backspace
-         widget::Image::new(image_id).source_rectangle(space_rect.stretch_to_point(new_top_right)
-                                                           .stretch_to_point(new_btm_right)), //space
-         widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(4.0)), //enter
-         widget::Image::new(image_id).source_rectangle(spriteinfo.src_rect(5.0))]; //closetab
+    let svg_keypad = SvgKeypad::new();     
     let letter_vec = vec![KeyButton(KeyVariant::StringHold(String::from("q"), String::from("1"))),
     KeyButton(KeyVariant::StringHold(String::from("w"),String::from("2"))),
     KeyButton(KeyVariant::StringHold(String::from("e"),String::from("3"))),
@@ -139,7 +122,7 @@ pub fn populate(image_id: conrod_core::image::Id,
     KeyButton(KeyVariant::StringOnly(String::from("l"))),
     KeyButton(KeyVariant::Blank(0.5,BlankEnum::Flat)), //20
     KeyButton(KeyVariant::Blank(0.0,BlankEnum::Flat)), //21
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[0],images[1]])),Box::new(|_,kpv|{match kpv{
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(SvgOrString::Svg(svg_keypad.arrow_full_up.clone(),color::BLACK,color::GREEN)),Box::new(|_,kpv|{match kpv{
         &mut KeyPadVariant::Letter(1)=>{
             *kpv= KeyPadVariant::Letter(2);
         },&mut KeyPadVariant::Letter(2)=>{
@@ -154,13 +137,13 @@ pub fn populate(image_id: conrod_core::image::Id,
     KeyButton(KeyVariant::StringOnly(String::from("n"))),
     KeyButton(KeyVariant::StringOnly(String::from("m"))),
     //backspace
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[2],images[2]])),Box::new(|events,_|{
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(SvgOrString::Svg(svg_keypad.delete.clone(),color::BLACK,color::BLACK)),Box::new(|events,_|{
         events.push(conrod_core::event::Widget::Press(Press{button:Button::Keyboard(Key::Backspace),modifiers:ModifierKey::empty()}));
         }))), //backspace
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("?123"),String::from("?123")])),Box::new(|_,kpv|{*kpv = KeyPadVariant::Num(1);}))),
-    KeyButton(KeyVariant::Spacebar(images[3],String::from(" "))),
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(SvgOrString::StringOnly([String::from("?123"),String::from("?123")])),Box::new(|_,kpv|{*kpv = KeyPadVariant::Num(1);}))),
+    KeyButton(KeyVariant::Spacebar(svg_keypad.spacebar.clone(),String::from(" "))),
     KeyButton(KeyVariant::StringOnly(String::from("."))),
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|events,_|{
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(SvgOrString::Svg(svg_keypad.enter.clone(),color::BLACK,color::BLACK)),Box::new(|events,_|{
           events.push(conrod_core::event::Widget::Press(Press{button:Button::Keyboard(Key::Return),modifiers:ModifierKey::empty()}));
     })))
     ];
@@ -186,7 +169,7 @@ pub fn populate(image_id: conrod_core::image::Id,
     KeyButton(KeyVariant::Num(String::from("+"),String::from("^"))),
     KeyButton(KeyVariant::Num(String::from("("),String::from("`"))),
     KeyButton(KeyVariant::Num(String::from(")"),String::from("∘"))),//20
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::StringOnly([String::from("1/3"),String::from("2/3")])),Box::new(|_,kpv|{
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(SvgOrString::StringOnly([String::from("1/3"),String::from("2/3")])),Box::new(|_,kpv|{
         match kpv{
             &mut KeyPadVariant::Num(1)=>{
                 *kpv = KeyPadVariant::Num(2);
@@ -197,7 +180,7 @@ pub fn populate(image_id: conrod_core::image::Id,
             _=>{}
         }
     }))), //21
-    KeyButton(KeyVariant::Blank(0.0,BlankEnum::Image(images[0]))), //22
+    KeyButton(KeyVariant::Blank(0.0,BlankEnum::Svg(svg_keypad.arrow_full_up.clone()))), //22
     KeyButton(KeyVariant::Num(String::from("?"),String::from("¿"))),
     KeyButton(KeyVariant::Num(String::from("!"),String::from("¡"))),
     KeyButton(KeyVariant::Num(String::from("\""),String::from("\\"))),
@@ -205,20 +188,19 @@ pub fn populate(image_id: conrod_core::image::Id,
     KeyButton(KeyVariant::Num(String::from(":"),String::from(">>"))),
     KeyButton(KeyVariant::Num(String::from(";"),String::from("®"))),
     KeyButton(KeyVariant::Num(String::from(","),String::from("©"))),
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[2],images[2]])),Box::new(|events,_|{
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(SvgOrString::Svg(svg_keypad.delete.clone(),color::BLACK,color::BLACK)),Box::new(|events,_|{
         events.push(conrod_core::event::Widget::Press(Press{button:Button::Keyboard(Key::Backspace),modifiers:ModifierKey::empty()}));
          }))), //backspace
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::StringOnly([String::from("abc"),String::from("abc")])),Box::new(|_,kpv|{*kpv=KeyPadVariant::Num(1);}))),
-    KeyButton(KeyVariant::Spacebar(images[3],String::from(" "))),
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(SvgOrString::StringOnly([String::from("abc"),String::from("abc")])),Box::new(|_,kpv|{*kpv=KeyPadVariant::Num(1);}))),
+    KeyButton(KeyVariant::Spacebar(svg_keypad.spacebar.clone(),String::from(" "))),
     KeyButton(KeyVariant::StringOnly(String::from("."))),
-    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(ImageOrString::Image([images[4],images[4]])),Box::new(|events,_|{
+    KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow4(SvgOrString::Svg(svg_keypad.enter.clone(),color::BLACK,color::BLACK)),Box::new(|events,_|{
            events.push(conrod_core::event::Widget::Press(Press{button:Button::Keyboard(Key::Return),modifiers:ModifierKey::empty()}));
         }))) //new line
         
         ];
     let closetabbutton =
-        KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(ImageOrString::Image([images[5],
-                                                                                     images[5]])),
+        KeyButton(KeyVariant::Closure(ClosureVariant::EdgeRow3(SvgOrString::Svg(svg_keypad.double_arrow_down.clone(),color::BLACK,color::BLACK)),
                                       Box::new(|_, kpv| { *kpv = KeyPadVariant::None; })));
     (letter_vec, number_vec, closetabbutton)
 }

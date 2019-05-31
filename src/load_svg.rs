@@ -14,23 +14,21 @@ pub struct SvgKeypad{
     pub delete: (Vec<WidgetType>,[f64;2]),
     pub double_arrow_down: (Vec<WidgetType>,[f64;2]),
     pub enter: (Vec<WidgetType>,[f64;2]),
+    pub spacebar: (Vec<WidgetType>,[f64;2]),
 }
 impl SvgKeypad{
     pub fn new()->Self{
         let arrow_full_up = include_str!("arrow_full_up.svg").to_owned();
         let delete = include_str!("a_delete.svg").to_owned();
         let double_arrow_down = include_str!("a_double-arrow-down.svg").to_owned();
-        let enter = include_str!("a_space.svg").to_owned();
-
+        let enter = include_str!("a_enter.svg").to_owned();
+        let spacebar = include_str!("a_space.svg").to_owned();
         SvgKeypad{
-            //arrow_full_up: convert(Parser::new(arrow_full_up),"arrow_full_up.svg"),
-            arrow_full_up:(vec![],[0.0,0.0]),
-            //delete: convert(Parser::new(delete),"delete"),
-            delete:(vec![],[0.0,0.0]),
-            double_arrow_down:(vec![],[0.0,0.0]),
-            //enter:vec![],
-            //double_arrow_down: convert(Parser::new(double_arrow_down),"doubledown"),
-            enter: convert(Parser::new(enter),"enter")
+            arrow_full_up: convert(Parser::new(arrow_full_up),"arrow_full_up.svg"),
+            delete: convert(Parser::new(delete),"delete"),
+            double_arrow_down: convert(Parser::new(double_arrow_down),"doubledown"),
+            enter: convert(Parser::new(enter),"enter"),
+            spacebar: convert(Parser::new(spacebar),"spacebar")
         }
     }
 }
@@ -51,11 +49,7 @@ fn convert<'a>(parser:Parser<'a>,_k:&'a str)->(Vec<WidgetType>,[f64;2]){
             },
             Event::Tag(Path, _, attributes) => {
                 let data = attributes.get("d").unwrap();
-                let stroke_boolean = if attributes.get("style").unwrap().contains("stroke"){
-                    true
-                }else{
-                    false
-                };
+                let stroke_boolean = false;
                 let data = Data::parse(data).unwrap();
                 let mut current_p:WidgetType = WidgetType::None;
                 let mut last_control_point:Option<[f64;2]> = None;

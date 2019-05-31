@@ -2,6 +2,7 @@ use conrod_core::{widget, Positionable, Widget, Color, Colorable,color, Sizeable
 use conrod_core::widget::primitive::shape::triangles::Triangle;
 /// The type upon which we'll implement the `Widget` trait.
 use polygon2::triangulate;
+pub type SvgInfo = (Vec<WidgetType>,[f64;2]);
 #[derive(Clone)]
 pub enum WidgetType{
     Polygon(Vec<[f64;2]>),
@@ -9,12 +10,12 @@ pub enum WidgetType{
     None
 }
 #[derive(WidgetCommon)]
-pub struct SvgWidget<'a> {
+pub struct SvgWidget {
     /// An object that handles some of the dirty work of rendering a GUI. We don't
     /// really have to worry about it.
     #[conrod(common_builder)]
     common: widget::CommonBuilder,
-    pub shapes: &'a Vec<WidgetType>,
+    pub shapes: Vec<WidgetType>,
     pub svgdimension: [f64;2],
     /// See the Style struct below.
     style: Style,
@@ -38,11 +39,11 @@ pub struct State {
     ids: Ids,
 }
 
-impl<'a> SvgWidget<'a> {
+impl SvgWidget {
     /// Create a button context to be built upon.
-    pub fn new(shapes:&'a (Vec<WidgetType>,[f64;2])) -> Self {
+    pub fn new(shapes:SvgInfo) -> Self {
         SvgWidget {
-            shapes: &shapes.0,
+            shapes: shapes.0,
             svgdimension:shapes.1,
             common: widget::CommonBuilder::default(),
             style: Style::default(),
@@ -52,7 +53,7 @@ impl<'a> SvgWidget<'a> {
 
 /// A custom Conrod widget must implement the Widget trait. See the **Widget** trait
 /// documentation for more details.
-impl<'a> Widget for SvgWidget<'a> {
+impl Widget for SvgWidget {
     /// The State struct that we defined above.
     type State = State;
     /// The Style struct that we defined using the `widget_style!` macro.
@@ -132,7 +133,7 @@ impl<'a> Widget for SvgWidget<'a> {
         
     }
 }
-impl<'a> Colorable for SvgWidget<'a> {
+impl Colorable for SvgWidget {
     builder_method!(color { style.color = Some(Color) });
 }
 pub fn triangles<I>(points:I,white_points_index:Option<usize>,reflect:bool)->Vec<Triangle<[f64;2]>> where I: IntoIterator<Item=Point>{

@@ -96,7 +96,7 @@ fn main() {
 
             // Set the widgets.
             let ui = &mut ui.set_widgets();
-            SvgWidget::new(&svg_keypad.enter).wh([200.0,200.0]).color(color::WHITE).middle().set(ids.text, ui);
+            SvgWidget::new(svg_keypad.enter.clone()).wh([200.0,200.0]).color(color::WHITE).middle().set(ids.text, ui);
         }
 
         // Draw the `Ui` if it has changed.
