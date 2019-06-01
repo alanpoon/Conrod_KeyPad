@@ -92,7 +92,7 @@ impl Widget for SvgWidget {
                         [x[0]*scale[0],x[1]*scale[1]]
                     }).collect();
                     if !stroke_boolean{
-                        let t = triangles(m,Some(white_points_index.clone()),stroke_boolean.clone());
+                        let t = triangles(m,Some(white_points_index.clone()),true);
                         widget::Triangles::single_color(widget_color,t)
                         .centre_points_to_bounding_rect()
                         .middle_of(id)
@@ -108,7 +108,7 @@ impl Widget for SvgWidget {
                         [x[0]*scale[0],x[1]*scale[1]]
                     }).collect();
                     //there is reflect
-                    let t = triangles(m,None,stroke_boolean.clone());
+                    let t = triangles(m,None,true);
                     widget::Triangles::single_color(widget_color,t)
                         .centre_points_to_bounding_rect()
                         .middle_of(id)

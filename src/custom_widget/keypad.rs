@@ -116,7 +116,12 @@ pub fn render_keypad<T>(master_id: widget::Id,
                             &SvgOrString::Svg(ref _iv,color1,color2) => {
                                 match keypad_variant {
                                     &mut KeyPadVariant::Letter(a) => {
-                                        let svg_widget = SvgWidget::new(_iv.clone()).color(color2);
+                                        let color_s  =if a==2{
+                                            color2
+                                        }else{
+                                            color1
+                                        };
+                                        let svg_widget = SvgWidget::new(_iv.clone()).color(color_s);
                                         KeyButEnum::Svg(keybut::Button::svg(svg_widget))
                                     }
                                     _ => {

@@ -7,7 +7,7 @@ use conrod_core::widget::envelope_editor::EnvelopePoint;
 use conrod_core::widget;
 use std::time::{Duration, Instant};
 use custom_widget::svg::{SvgWidget,WidgetType,SvgInfo};
-
+use std::cmp;
 pub enum KeyButEnum<'a> {
     Flat(Button<'a, Flat>),
     Svg(Button<'a, SvgWidget>),
@@ -258,11 +258,15 @@ impl<'a> Widget for Button<'a, SvgWidget> {
         // Instantiate the svg.
         let widget_image = show;
         let (x, y, w, h) = rect.x_y_w_h();
+        let min_dim = cmp::min(w as u32,h as u32);
+        let width_ofsvg = if (w/h >5.0){
+            min_dim as f64 *2.0
+        }else{
+            min_dim as f64
+        };
         let image = widget_image.x_y(x, y)
-           // .top_right_with_margins_on(id, h * 0.2, w * 0.2)
-           // .w_h(w * 0.6, h * 0.6)
-            .top_right_with_margins_on(id, h * 0.2, w * 0.2)
-            .w_h(w * 0.6, h * 0.6)
+            .middle_of(id)
+            .w_h(width_ofsvg * 0.8, min_dim as f64 * 0.8)
             .parent(id)
             .graphics_for(id);
 
