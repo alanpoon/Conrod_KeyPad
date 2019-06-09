@@ -9,7 +9,6 @@ extern crate bezier2;
 extern crate polygon2;
 extern crate rtriangulate;
 
-pub mod sprite;
 pub mod english;
 pub mod custom_widget;
 pub mod load_svg;
