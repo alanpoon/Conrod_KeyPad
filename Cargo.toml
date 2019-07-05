@@ -4,19 +4,19 @@ version = "0.1.0"
 authors = ["alanpoon"]
 
 [dependencies]
-conrod_core = { path ="../conrod/conrod_core"}
-conrod_derive = { path = "../conrod/conrod_derive"}
+conrod_core = { git ="https://github.com/alanpoon/conrod.git",branch = "crayon"}
+conrod_derive = { git ="https://github.com/alanpoon/conrod.git",branch = "crayon"}
 svg = "0.5.12"
 nalgebra = "0.18"
 num = "0.2.0"
 bezier2 = "0.2.0"
-polygon2 = {path = "../rs-polygon2"}
+polygon2 = {git = "https://github.com/alanpoon/rs-polygon2.git",branch = "std"}
 rtriangulate = "0.3.1"
 
 [dev-dependencies]
 image = "0.15.0"
-conrod_glium = {path = "../conrod/backends/conrod_glium"}
-conrod_winit = {path = "../conrod/backends/conrod_winit"}
+conrod_glium = { git ="https://github.com/alanpoon/conrod.git",branch = "crayon"}
+conrod_winit = { git ="https://github.com/alanpoon/conrod.git",branch = "crayon"}
 glium = { version = "0.23" }
 
 [package.metadata.android]
